@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 220 17% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 17% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 17% 12%;
+    --primary: 172 57% 30%;
+    --primary-foreground: 180 30% 98%;
+    --secondary: 215 18% 94%;
+    --secondary-foreground: 220 17% 16%;
+    --muted: 215 18% 95%;
+    --muted-foreground: 220 9% 42%;
+    --accent: 32 48% 92%;
+    --accent-foreground: 220 17% 14%;
+    --destructive: 0 72% 47%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 18% 88%;
+    --input: 214 18% 88%;
+    --ring: 172 57% 30%;
+    --radius: 0.75rem;
+    --chart-1: 176 55% 34%;
+    --chart-2: 28 84% 55%;
+    --chart-3: 214 42% 45%;
+    --chart-4: 95 35% 42%;
+    --chart-5: 350 58% 58%;
+  }
+
+  .dark {
+    --background: 220 16% 8%;
+    --foreground: 210 22% 92%;
+    --card: 220 14% 11%;
+    --card-foreground: 210 22% 92%;
+    --popover: 220 16% 13%;
+    --popover-foreground: 210 22% 92%;
+    --primary: 172 48% 45%;
+    --primary-foreground: 180 35% 98%;
+    --secondary: 218 12% 16%;
+    --secondary-foreground: 210 22% 90%;
+    --muted: 218 12% 16%;
+    --muted-foreground: 215 13% 68%;
+    --accent: 28 28% 20%;
+    --accent-foreground: 210 22% 92%;
+    --destructive: 0 62% 46%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 218 12% 21%;
+    --input: 218 12% 21%;
+    --ring: 176 50% 43%;
+    --chart-1: 176 50% 48%;
+    --chart-2: 31 84% 58%;
+    --chart-3: 210 48% 62%;
+    --chart-4: 103 32% 57%;
+    --chart-5: 350 62% 64%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    min-height: 100%;
+    background: hsl(var(--background));
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue",
+      "Hiragino Sans", "Hiragino Sans GB", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70;
+  }
+
+  .focus-ring {
+    @apply outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8;
+  }
+
+  .surface {
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  .subtle-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+}
