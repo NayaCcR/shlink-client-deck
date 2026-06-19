@@ -26,7 +26,8 @@ function HostedLoading() {
 export function HostedConsole() {
   const sessionQuery = useHostedSession();
   const session = sessionQuery.data?.session ?? null;
-  const workspaceId = session?.workspaces[0]?.id ?? null;
+  const workspace = session?.workspaces[0] ?? null;
+  const workspaceId = workspace?.id ?? null;
   const serversQuery = useHostedServers(workspaceId);
   const syncHostedServers = useServerStore((state) => state.syncHostedServers);
   const servers = useServerStore((state) => state.servers);
@@ -53,5 +54,12 @@ export function HostedConsole() {
     return <ServerOnboarding mode="hosted" workspaceId={workspaceId} />;
   }
 
-  return <ConsoleApp mode="hosted" workspaceId={workspaceId} />;
+  return (
+    <ConsoleApp
+      mode="hosted"
+      workspaceId={workspaceId}
+      workspaceRole={workspace?.role}
+      currentUserId={session.user.id}
+    />
+  );
 }

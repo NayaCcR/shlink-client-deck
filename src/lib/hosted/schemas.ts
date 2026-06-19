@@ -4,12 +4,18 @@ export const hostedRegisterSchema = z.object({
   name: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(200),
   password: z.string().min(8).max(200),
-  workspaceName: z.string().trim().max(80).optional()
+  workspaceName: z.string().trim().max(80).optional(),
+  inviteCode: z.string().trim().min(1).max(200).optional()
 });
 
 export const hostedLoginSchema = z.object({
   email: z.string().trim().email().max(200),
   password: z.string().min(1).max(200)
+});
+
+export const hostedPasswordChangeSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200)
 });
 
 export const hostedServerCreateSchema = z.object({
@@ -54,3 +60,21 @@ export const hostedServerTestSchema = z
       });
     }
   });
+
+export const hostedInviteCreateSchema = z.object({
+  workspaceId: z.string().min(1),
+  role: z.enum(["admin", "member", "viewer"]),
+  maxUses: z.number().int().min(1).max(10_000).nullable().optional(),
+  expiresAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .refine((value) => !value || new Date(value).getTime() > Date.now(), {
+      message: "Expiration date must be in the future."
+    })
+});
+
+export const hostedMemberUpdateSchema = z.object({
+  role: z.enum(["owner", "admin", "member", "viewer"])
+});

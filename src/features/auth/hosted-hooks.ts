@@ -3,25 +3,39 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  changeHostedPassword,
+  createHostedInvite,
   createHostedServer,
   deleteHostedServer,
+  disableHostedInvite,
   getHostedSession,
+  listHostedInvites,
+  listHostedMembers,
   listHostedServers,
   loginHostedAccount,
   logoutHostedAccount,
   registerHostedAccount,
+  removeHostedMember,
   testHostedServerConnection,
   toHostedShlinkServer,
+  updateHostedMemberRole,
   updateHostedServer,
+  type HostedInviteInput,
+  type HostedPasswordChangeInput,
   type HostedServerInput,
   type HostedServerUpdateInput
 } from "@/features/auth/hosted-api";
 import { useServerStore } from "@/features/servers/server-store";
 import { isHostedAppMode } from "@/lib/config/app-mode";
+import type { HostedRole } from "@/lib/hosted/types";
 
 export const hostedSessionKey = ["hosted", "session"] as const;
 export const hostedServersKey = (workspaceId?: string | null) =>
   ["hosted", "servers", workspaceId ?? "default"] as const;
+export const hostedInvitesKey = (workspaceId?: string | null) =>
+  ["hosted", "invites", workspaceId ?? "default"] as const;
+export const hostedMembersKey = (workspaceId?: string | null) =>
+  ["hosted", "members", workspaceId ?? "default"] as const;
 
 export function useHostedSession() {
   return useQuery({
@@ -47,6 +61,26 @@ export function useHostedServers(workspaceId?: string | null) {
   });
 }
 
+export function useHostedInvites(workspaceId?: string | null, enabled = true) {
+  return useQuery({
+    queryKey: hostedInvitesKey(workspaceId),
+    queryFn: () => listHostedInvites(workspaceId ?? undefined),
+    enabled: isHostedAppMode() && enabled && Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: false
+  });
+}
+
+export function useHostedMembers(workspaceId?: string | null, enabled = true) {
+  return useQuery({
+    queryKey: hostedMembersKey(workspaceId),
+    queryFn: () => listHostedMembers(workspaceId ?? undefined),
+    enabled: isHostedAppMode() && enabled && Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: false
+  });
+}
+
 export function useHostedLogin() {
   const queryClient = useQueryClient();
 
@@ -64,6 +98,59 @@ export function useHostedRegister() {
   return useMutation({
     mutationFn: registerHostedAccount,
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedSessionKey });
+    }
+  });
+}
+
+export function useCreateHostedInvite(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: HostedInviteInput) => createHostedInvite(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedInvitesKey(workspaceId) });
+    }
+  });
+}
+
+export function useDisableHostedInvite(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: disableHostedInvite,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedInvitesKey(workspaceId) });
+    }
+  });
+}
+
+export function useChangeHostedPassword() {
+  return useMutation({
+    mutationFn: (input: HostedPasswordChangeInput) => changeHostedPassword(input)
+  });
+}
+
+export function useUpdateHostedMemberRole(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: HostedRole }) =>
+      updateHostedMemberRole(memberId, role),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedMembersKey(workspaceId) });
+      await queryClient.invalidateQueries({ queryKey: hostedSessionKey });
+    }
+  });
+}
+
+export function useRemoveHostedMember(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: removeHostedMember,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedMembersKey(workspaceId) });
       await queryClient.invalidateQueries({ queryKey: hostedSessionKey });
     }
   });

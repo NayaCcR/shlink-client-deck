@@ -24,7 +24,8 @@ const registerSchema = z.object({
   name: z.string().trim().min(1).max(80),
   email: z.string().trim().email(),
   password: z.string().min(8).max(200),
-  workspaceName: z.string().trim().max(80).optional()
+  workspaceName: z.string().trim().max(80).optional(),
+  inviteCode: z.string().trim().max(200).optional()
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -33,6 +34,7 @@ type RegisterValues = z.infer<typeof registerSchema>;
 export function HostedAuthPage() {
   const { t } = useTranslation();
   const [mode, setMode] = React.useState<"login" | "register">("login");
+  const [registerMode, setRegisterMode] = React.useState<"workspace" | "invite">("workspace");
   const login = useHostedLogin();
   const register = useHostedRegister();
   const loginForm = useForm<LoginValues>({
@@ -48,11 +50,26 @@ export function HostedAuthPage() {
       name: "",
       email: "",
       password: "",
-      workspaceName: ""
+      workspaceName: "",
+      inviteCode: ""
     }
   });
   const isLogin = mode === "login";
   const activeError = isLogin ? login.error : register.error;
+  const registerDescription = registerMode === "invite"
+    ? t("hosted.auth.inviteRegisterDescription")
+    : t("hosted.auth.registerDescription");
+
+  React.useEffect(() => {
+    const inviteCode = new URLSearchParams(window.location.search).get("invite");
+    if (!inviteCode) {
+      return;
+    }
+
+    setMode("register");
+    setRegisterMode("invite");
+    registerForm.setValue("inviteCode", inviteCode);
+  }, [registerForm]);
 
   return (
     <main className="min-h-screen bg-muted/25 text-foreground">
@@ -105,7 +122,7 @@ export function HostedAuthPage() {
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {isLogin
                     ? t("hosted.auth.loginDescription")
-                    : t("hosted.auth.registerDescription")}
+                    : registerDescription}
                 </p>
               </div>
 
@@ -141,8 +158,56 @@ export function HostedAuthPage() {
               ) : (
                 <form
                   className="space-y-4"
-                  onSubmit={registerForm.handleSubmit((values) => register.mutate(values))}
+                  onSubmit={registerForm.handleSubmit((values) => {
+                    if (registerMode === "invite" && !values.inviteCode?.trim()) {
+                      registerForm.setError("inviteCode", {
+                        type: "required",
+                        message: t("hosted.auth.inviteCodeRequired")
+                      });
+                      return;
+                    }
+
+                    register.mutate({
+                      name: values.name,
+                      email: values.email,
+                      password: values.password,
+                      workspaceName:
+                        registerMode === "workspace"
+                          ? values.workspaceName?.trim() || undefined
+                          : undefined,
+                      inviteCode:
+                        registerMode === "invite"
+                          ? values.inviteCode?.trim()
+                          : undefined
+                    });
+                  })}
                 >
+                  <div className="inline-flex rounded-md border border-border bg-background p-1 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setRegisterMode("workspace")}
+                      className={cn(
+                        "inline-flex h-8 items-center rounded px-3 text-sm font-medium transition-colors",
+                        registerMode === "workspace"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {t("hosted.auth.createWorkspace")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRegisterMode("invite")}
+                      className={cn(
+                        "inline-flex h-8 items-center rounded px-3 text-sm font-medium transition-colors",
+                        registerMode === "invite"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {t("hosted.auth.useInvite")}
+                    </button>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="hosted-register-name">{t("hosted.auth.name")}</Label>
@@ -163,14 +228,31 @@ export function HostedAuthPage() {
                     />
                     <p className="text-xs text-muted-foreground">{t("hosted.auth.passwordHint")}</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="hosted-register-workspace">{t("hosted.auth.workspaceName")}</Label>
-                    <Input
-                      id="hosted-register-workspace"
-                      placeholder={t("hosted.auth.workspacePlaceholder")}
-                      {...registerForm.register("workspaceName")}
-                    />
-                  </div>
+                  {registerMode === "workspace" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="hosted-register-workspace">{t("hosted.auth.workspaceName")}</Label>
+                      <Input
+                        id="hosted-register-workspace"
+                        placeholder={t("hosted.auth.workspacePlaceholder")}
+                        {...registerForm.register("workspaceName")}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="hosted-register-invite">{t("hosted.auth.inviteCode")}</Label>
+                      <Input
+                        id="hosted-register-invite"
+                        autoComplete="one-time-code"
+                        placeholder={t("hosted.auth.inviteCodePlaceholder")}
+                        {...registerForm.register("inviteCode")}
+                      />
+                      {registerForm.formState.errors.inviteCode?.message ? (
+                        <p className="text-xs text-destructive">
+                          {registerForm.formState.errors.inviteCode.message}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
                   <Button type="submit" className="w-full" disabled={register.isPending}>
                     {register.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     {t("hosted.auth.register")}

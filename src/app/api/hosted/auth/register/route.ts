@@ -21,12 +21,20 @@ export async function POST(request: Request) {
 
   try {
     const input = hostedRegisterSchema.parse(await readJson(request, {}));
-    const { user } = await hostedStore.createUserWithWorkspace({
-      name: input.name,
-      email: input.email,
-      passwordHash: hashPassword(input.password),
-      workspaceName: input.workspaceName
-    });
+    const account = input.inviteCode
+      ? await hostedStore.createUserWithInvite({
+          name: input.name,
+          email: input.email,
+          passwordHash: hashPassword(input.password),
+          inviteCode: input.inviteCode
+        })
+      : await hostedStore.createUserWithWorkspace({
+          name: input.name,
+          email: input.email,
+          passwordHash: hashPassword(input.password),
+          workspaceName: input.workspaceName
+        });
+    const { user } = account;
     const token = await createHostedSession(user.id);
     const session = await hostedStore.getSession(hashToken(token));
 
@@ -49,6 +57,18 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === "EMAIL_EXISTS") {
       return apiError("CONFLICT", "An account with this email already exists.", 409);
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "INVITE_NOT_FOUND",
+        "INVITE_DISABLED",
+        "INVITE_EXPIRED",
+        "INVITE_USED_UP"
+      ].includes(error.message)
+    ) {
+      return apiError("INVITE_INVALID", "This invite code is invalid or no longer available.", 400);
     }
 
     return apiError("INTERNAL_ERROR", "Could not register account.", 500);

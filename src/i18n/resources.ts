@@ -342,7 +342,87 @@ export const resources = {
         hostedDesc2: "计划接入 PostgreSQL、Prisma、Auth.js、Redis，并让浏览器不直接接触 API Key。",
         hostedEnabledDesc1: "当前部署已启用注册、登录、工作区、服务端加密保存 Shlink API Key 和后端代理请求。",
         hostedEnabledDesc2: "数据层目前使用本地文件存储，后续可按 README 迁移到 PostgreSQL、Prisma、Auth.js 和 Redis。",
-        hostedDisabled: "Hosted Mode 尚未启用"
+        hostedDisabled: "Hosted Mode 尚未启用",
+        account: {
+          title: "账号安全",
+          description: "修改当前 Hosted 账号的登录密码。密码只会以哈希形式保存在本部署后端。",
+          currentPassword: "当前密码",
+          newPassword: "新密码",
+          confirmPassword: "确认新密码",
+          submit: "更新密码",
+          failed: "密码更新失败",
+          saved: "密码已更新",
+          savedDescription: "下次登录请使用新密码。",
+          passwordTooShort: "新密码至少需要 8 个字符。",
+          passwordMismatch: "两次输入的新密码不一致。"
+        },
+        members: {
+          title: "成员管理",
+          description: "管理当前工作区成员和角色。owner 可管理管理员与普通成员，admin 只能管理 member / viewer。",
+          loading: "正在加载成员",
+          loadFailed: "无法加载成员",
+          failed: "成员操作失败",
+          emptyTitle: "还没有成员",
+          emptyDescription: "通过邀请码注册后，成员会出现在这里。",
+          currentUser: "你",
+          remove: "移除",
+          removeTitle: "移除成员",
+          removeDescription: "确定要将 {{name}} 移出当前工作区吗？该成员会立即失去对此工作区的访问权限。",
+          cancel: "取消",
+          confirmRemove: "确认移除",
+          roles: {
+            owner: "所有者",
+            admin: "管理员",
+            member: "成员",
+            viewer: "只读"
+          },
+          table: {
+            member: "成员",
+            role: "角色",
+            joinedAt: "加入时间",
+            actions: "操作"
+          }
+        },
+        invites: {
+          title: "邀请注册",
+          description: "管理员可以生成邀请码，让新用户加入当前工作区。不同工作区的邀请码只会进入对应的服务器和用户体系。",
+          role: "邀请角色",
+          maxUses: "可使用次数",
+          expiresAt: "过期时间",
+          create: "生成邀请码",
+          createdTitle: "邀请码已生成",
+          createdDescription: "完整邀请码只会在这里显示一次，请立即复制并通过可信渠道发送。",
+          copyLink: "复制链接",
+          copyCode: "复制邀请码",
+          copied: "已复制",
+          failed: "邀请码操作失败",
+          loading: "正在加载邀请码",
+          loadFailed: "无法加载邀请码",
+          emptyTitle: "还没有邀请码",
+          emptyDescription: "生成一个邀请码后，普通用户即可通过邀请码注册并加入当前工作区。",
+          unlimited: "不限",
+          never: "永不过期",
+          disable: "停用",
+          roles: {
+            admin: "管理员",
+            member: "成员",
+            viewer: "只读"
+          },
+          status: {
+            active: "有效",
+            disabled: "已停用",
+            expired: "已过期",
+            usedUp: "已用完"
+          },
+          table: {
+            code: "邀请码",
+            role: "角色",
+            uses: "使用次数",
+            expiresAt: "过期时间",
+            status: "状态",
+            actions: "操作"
+          }
+        }
       },
       hosted: {
         loading: "正在加载 Hosted Mode",
@@ -355,11 +435,17 @@ export const resources = {
           registerTitle: "创建工作区",
           loginDescription: "使用你在当前部署中创建的账号进入团队工作区。",
           registerDescription: "创建第一个账号时会自动生成一个工作区，用于集中管理 Shlink 服务器凭证。",
+          inviteRegisterDescription: "使用管理员生成的邀请码注册，会加入对应工作区，并继承邀请码指定的角色和权限。",
           failed: "认证失败",
           name: "姓名",
           email: "邮箱",
           password: "密码",
           passwordHint: "至少 8 个字符。",
+          createWorkspace: "创建工作区",
+          useInvite: "使用邀请码",
+          inviteCode: "邀请码",
+          inviteCodePlaceholder: "粘贴管理员发给你的邀请码",
+          inviteCodeRequired: "请输入邀请码",
           workspaceName: "工作区名称",
           workspacePlaceholder: "例如：我的短链团队",
           securityTitle: "凭证由服务端加密保存",
@@ -715,7 +801,87 @@ export const resources = {
         hostedDesc2: "Planned integrations include PostgreSQL, Prisma, Auth.js, and Redis.",
         hostedEnabledDesc1: "This deployment enables registration, login, workspaces, server-side encrypted Shlink API keys, and backend proxying.",
         hostedEnabledDesc2: "The current data layer uses local file storage and can later be migrated to PostgreSQL, Prisma, Auth.js, and Redis.",
-        hostedDisabled: "Hosted Mode is not enabled"
+        hostedDisabled: "Hosted Mode is not enabled",
+        account: {
+          title: "Account security",
+          description: "Change the password for the current Hosted account. Passwords are stored only as hashes by this deployment backend.",
+          currentPassword: "Current password",
+          newPassword: "New password",
+          confirmPassword: "Confirm password",
+          submit: "Update password",
+          failed: "Could not update password",
+          saved: "Password updated",
+          savedDescription: "Use the new password the next time you sign in.",
+          passwordTooShort: "The new password must be at least 8 characters.",
+          passwordMismatch: "The new passwords do not match."
+        },
+        members: {
+          title: "Members",
+          description: "Manage members and roles in this workspace. Owners can manage admins and regular members; admins can only manage members and viewers.",
+          loading: "Loading members",
+          loadFailed: "Could not load members",
+          failed: "Member action failed",
+          emptyTitle: "No members yet",
+          emptyDescription: "Members appear here after registering with an invite.",
+          currentUser: "You",
+          remove: "Remove",
+          removeTitle: "Remove member",
+          removeDescription: "Remove {{name}} from this workspace? They will immediately lose access to this workspace.",
+          cancel: "Cancel",
+          confirmRemove: "Remove member",
+          roles: {
+            owner: "Owner",
+            admin: "Admin",
+            member: "Member",
+            viewer: "Viewer"
+          },
+          table: {
+            member: "Member",
+            role: "Role",
+            joinedAt: "Joined",
+            actions: "Actions"
+          }
+        },
+        invites: {
+          title: "Invite registration",
+          description: "Admins can generate invite codes for new users to join this workspace. Codes from different workspaces keep users, servers, and permissions isolated.",
+          role: "Invite role",
+          maxUses: "Max uses",
+          expiresAt: "Expires at",
+          create: "Create invite",
+          createdTitle: "Invite created",
+          createdDescription: "The full invite code is shown only once. Copy it now and share it through a trusted channel.",
+          copyLink: "Copy link",
+          copyCode: "Copy code",
+          copied: "Copied",
+          failed: "Invite action failed",
+          loading: "Loading invites",
+          loadFailed: "Could not load invites",
+          emptyTitle: "No invites yet",
+          emptyDescription: "Create an invite so regular users can register into this workspace.",
+          unlimited: "Unlimited",
+          never: "Never",
+          disable: "Disable",
+          roles: {
+            admin: "Admin",
+            member: "Member",
+            viewer: "Viewer"
+          },
+          status: {
+            active: "Active",
+            disabled: "Disabled",
+            expired: "Expired",
+            usedUp: "Used up"
+          },
+          table: {
+            code: "Code",
+            role: "Role",
+            uses: "Uses",
+            expiresAt: "Expires",
+            status: "Status",
+            actions: "Actions"
+          }
+        }
       },
       hosted: {
         loading: "Loading Hosted Mode",
@@ -728,11 +894,17 @@ export const resources = {
           registerTitle: "Create a workspace",
           loginDescription: "Use an account created on this deployment to enter your workspace.",
           registerDescription: "The first account creates a workspace for centralized Shlink server credential management.",
+          inviteRegisterDescription: "Registering with an admin invite joins the matching workspace with the role and permissions assigned to that invite.",
           failed: "Authentication failed",
           name: "Name",
           email: "Email",
           password: "Password",
           passwordHint: "At least 8 characters.",
+          createWorkspace: "Create workspace",
+          useInvite: "Use invite",
+          inviteCode: "Invite code",
+          inviteCodePlaceholder: "Paste the invite code from your admin",
+          inviteCodeRequired: "Enter an invite code",
           workspaceName: "Workspace name",
           workspacePlaceholder: "For example: My link team",
           securityTitle: "Credentials are encrypted on the server",

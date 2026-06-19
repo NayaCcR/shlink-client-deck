@@ -1,4 +1,4 @@
-import { cp, mkdir, rename, rm } from "fs/promises";
+import { cp, mkdir, readFile, rename, rm, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { dirname, join, relative, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -9,7 +9,10 @@ const nextCli = join(root, "node_modules", "next", "dist", "bin", "next");
 const apiDir = join(root, "src", "app", "api");
 const apiBackupRoot = join(root, ".next-static-api-routes");
 const apiBackupDir = join(apiBackupRoot, "api");
+const nextDir = join(root, ".next");
 const oldShadowBuildDir = join(root, ".next-static-build-work");
+const tsconfigPath = join(root, "tsconfig.json");
+const devTypesInclude = ".next/dev/types/**/*.ts";
 
 function assertInsideRoot(target) {
   const relativePath = relative(resolve(root), resolve(target));
@@ -94,12 +97,39 @@ async function restoreApiRoutes(moved) {
   }
 }
 
-assertInsideRoot(oldShadowBuildDir);
-await rm(oldShadowBuildDir, { recursive: true, force: true });
+async function removeDevTypesFromStaticTsconfig() {
+  assertInsideRoot(tsconfigPath);
 
+  const original = await readFile(tsconfigPath, "utf8");
+  const tsconfig = JSON.parse(original);
+
+  if (!Array.isArray(tsconfig.include) || !tsconfig.include.includes(devTypesInclude)) {
+    return original;
+  }
+
+  tsconfig.include = tsconfig.include.filter((item) => item !== devTypesInclude);
+  await writeFile(tsconfigPath, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
+  return original;
+}
+
+async function restoreTsconfig(original) {
+  if (!original) {
+    return;
+  }
+
+  await writeFile(tsconfigPath, original, "utf8");
+}
+
+assertInsideRoot(oldShadowBuildDir);
+assertInsideRoot(nextDir);
+await rm(oldShadowBuildDir, { recursive: true, force: true });
+await rm(nextDir, { recursive: true, force: true });
+
+const originalTsconfig = await removeDevTypesFromStaticTsconfig();
 const movedApiRoutes = await moveApiRoutesOutOfStaticBuild();
 try {
   await runNextBuild();
 } finally {
   await restoreApiRoutes(movedApiRoutes);
+  await restoreTsconfig(originalTsconfig);
 }

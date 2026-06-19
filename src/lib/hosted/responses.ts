@@ -7,6 +7,8 @@ export type HostedApiErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "LAST_OWNER"
+  | "INVITE_INVALID"
   | "HOSTED_DISABLED"
   | "UPSTREAM_ERROR"
   | "INTERNAL_ERROR";

@@ -1,6 +1,13 @@
 "use client";
 
-import type { HostedServer, HostedSession } from "@/lib/hosted/types";
+import type {
+  HostedInviteRole,
+  HostedRole,
+  HostedServer,
+  HostedSession,
+  HostedWorkspaceMember,
+  HostedWorkspaceInvite
+} from "@/lib/hosted/types";
 import type { ShlinkHealth, ShlinkServer } from "@/lib/shlink/types";
 
 type ApiEnvelope<T> = T & {
@@ -18,6 +25,16 @@ type HostedSessionResponse = {
 type HostedServersResponse = {
   workspaceId: string;
   servers: HostedServer[];
+};
+
+type HostedInvitesResponse = {
+  workspaceId: string;
+  invites: HostedWorkspaceInvite[];
+};
+
+type HostedMembersResponse = {
+  workspaceId: string;
+  members: HostedWorkspaceMember[];
 };
 
 export type HostedConnectionTestResult = {
@@ -39,6 +56,18 @@ export type HostedServerUpdateInput = {
   name?: string;
   baseUrl?: string;
   apiKey?: string;
+};
+
+export type HostedInviteInput = {
+  workspaceId: string;
+  role: HostedInviteRole;
+  maxUses?: number | null;
+  expiresAt?: string | null;
+};
+
+export type HostedPasswordChangeInput = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
@@ -83,6 +112,7 @@ export function registerHostedAccount(input: {
   email: string;
   password: string;
   workspaceName?: string;
+  inviteCode?: string;
 }) {
   return apiRequest<{ session: HostedSession }>("/api/hosted/auth/register", {
     method: "POST",
@@ -100,6 +130,13 @@ export function loginHostedAccount(input: { email: string; password: string }) {
 export function logoutHostedAccount() {
   return apiRequest<{ ok: boolean }>("/api/hosted/auth/logout", {
     method: "POST"
+  });
+}
+
+export function changeHostedPassword(input: HostedPasswordChangeInput) {
+  return apiRequest<{ ok: boolean }>("/api/hosted/auth/password", {
+    method: "POST",
+    body: JSON.stringify(input)
   });
 }
 
@@ -139,4 +176,53 @@ export function testHostedServerConnection(input: {
     method: "POST",
     body: JSON.stringify(input)
   });
+}
+
+export function listHostedInvites(workspaceId?: string) {
+  const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : "";
+  return apiRequest<HostedInvitesResponse>(`/api/hosted/invites${query}`, {
+    method: "GET"
+  });
+}
+
+export function createHostedInvite(input: HostedInviteInput) {
+  return apiRequest<{ invite: HostedWorkspaceInvite; code: string }>("/api/hosted/invites", {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+}
+
+export function disableHostedInvite(inviteId: string) {
+  return apiRequest<{ invite: HostedWorkspaceInvite }>(
+    `/api/hosted/invites/${encodeURIComponent(inviteId)}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
+export function listHostedMembers(workspaceId?: string) {
+  const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : "";
+  return apiRequest<HostedMembersResponse>(`/api/hosted/members${query}`, {
+    method: "GET"
+  });
+}
+
+export function updateHostedMemberRole(memberId: string, role: HostedRole) {
+  return apiRequest<{ member: HostedWorkspaceMember }>(
+    `/api/hosted/members/${encodeURIComponent(memberId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ role })
+    }
+  );
+}
+
+export function removeHostedMember(memberId: string) {
+  return apiRequest<{ ok: boolean }>(
+    `/api/hosted/members/${encodeURIComponent(memberId)}`,
+    {
+      method: "DELETE"
+    }
+  );
 }

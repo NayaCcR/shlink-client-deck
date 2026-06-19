@@ -10,13 +10,21 @@ import { SettingsPage } from "@/features/settings/settings-page";
 import { ShortUrlsPage } from "@/features/short-urls/short-urls-page";
 import { TagsPage } from "@/features/tags/tags-page";
 import { VisitsPage } from "@/features/visits/visits-page";
+import type { HostedRole } from "@/lib/hosted/types";
 
 type ConsoleAppProps = {
   mode?: "static" | "hosted";
   workspaceId?: string | null;
+  workspaceRole?: HostedRole | null;
+  currentUserId?: string | null;
 };
 
-export function ConsoleApp({ mode = "static", workspaceId }: ConsoleAppProps) {
+export function ConsoleApp({
+  mode = "static",
+  workspaceId,
+  workspaceRole,
+  currentUserId
+}: ConsoleAppProps) {
   const currentServer = useCurrentServer();
   const [activeView, setActiveView] = React.useState<AppView>("overview");
   const [globalSearch, setGlobalSearch] = React.useState("");
@@ -55,7 +63,14 @@ export function ConsoleApp({ mode = "static", workspaceId }: ConsoleAppProps) {
       {activeView === "servers" ? (
         <ServersPage mode={mode} workspaceId={workspaceId} />
       ) : null}
-      {activeView === "settings" ? <SettingsPage /> : null}
+      {activeView === "settings" ? (
+        <SettingsPage
+          mode={mode}
+          workspaceId={workspaceId}
+          workspaceRole={workspaceRole}
+          currentUserId={currentUserId}
+        />
+      ) : null}
     </AppShell>
   );
 }
