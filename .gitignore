@@ -3,6 +3,7 @@ out
 node_modules
 .env
 .env*.local
+link-console.config.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

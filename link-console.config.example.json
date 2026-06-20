@@ -1,0 +1,51 @@
+{
+  // App runtime.
+  // 应用运行时配置。
+  "app": {
+    "mode": "hosted", // Runtime mode. / 运行模式。
+    "publicUrl": "http://localhost:3000" // Public Link Console URL, not Shlink API URL. / Link Console 公网地址，不是 Shlink API 地址。
+  },
+
+  // Security secrets.
+  // 安全密钥配置。
+  "security": {
+    "authSecret": "replace-with-a-long-random-value", // Session token hash secret. / 会话 token 哈希密钥。
+    "credentialEncryptionKey": "replace-with-another-long-random-value" // Encrypts Shlink API keys and protected-link targets. / 用于加密 Shlink API Key 和受保护短链真实目标。
+  },
+
+  // Hosted data storage.
+  // Hosted 数据存储配置。
+  "storage": {
+    "driver": "sqlite",
+    // Optional storage drivers: sqlite, postgres/pgsql, mysql, redis, json.
+    // 可选数据库类型：sqlite、postgres/pgsql、mysql、redis、json。
+    "storeKey": "default", // Logical store name for one deployment. / 当前部署使用的逻辑存储名。
+    "table": "link_console_store", // SQL table name for sqlite/postgres/mysql. / SQLite/PostgreSQL/MySQL 使用的数据表名。
+    "sqlite": {
+      "path": "hosted-store.sqlite" // Relative paths are stored under .link-console/. / 相对路径会写入 .link-console/。
+    },
+    "databaseUrl": "", // PostgreSQL/MySQL URL. / PostgreSQL 或 MySQL 连接串。
+    "redis": {
+      "url": "", // Redis connection URL. / Redis 连接地址。
+      "key": "link-console:hosted-store" // Redis key for Hosted store payload. / Redis 中保存 Hosted 数据的 key。
+    },
+    "legacyJson": {
+      "path": "hosted-store.json", // Used only when driver is json. / 仅在 driver=json 时作为读写路径。
+      "importPath": "hosted-store.json" // Auto-import source when the selected database is empty. / 数据库为空时自动导入的旧 JSON 来源。
+    }
+  },
+
+  // Future mail features.
+  // 未来邮件功能配置。
+  "mail": {
+    "enabled": false, // Reserved for future invite/password-reset emails. / 预留给未来邀请邮件、密码重置邮件。
+    "from": "Link Console <no-reply@example.com>", // Default sender. / 默认发件人。
+    "smtp": {
+      "host": "", // SMTP host. / SMTP 主机。
+      "port": 587, // SMTP port. / SMTP 端口。
+      "secure": false, // Use TLS from connection start. / 是否从连接开始就使用 TLS。
+      "user": "", // SMTP username. / SMTP 用户名。
+      "password": "" // SMTP password. / SMTP 密码。
+    }
+  }
+}

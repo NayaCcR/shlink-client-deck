@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { LanguageSwitcher } from "@/components/app/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +89,10 @@ export function ProtectedLinkUnlockPage() {
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="protected-link-password">{t("protectedLink.password")}</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="protected-link-password">{t("protectedLink.password")}</Label>
+                <LanguageSwitcher className="z-10" />
+              </div>
               <Input
                 id="protected-link-password"
                 type="password"

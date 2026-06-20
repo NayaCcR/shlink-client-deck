@@ -10,7 +10,7 @@ process.chdir(root);
 const { argv } = await loadLinkConsoleConfig();
 const nextCli = join(root, "node_modules", "next", "dist", "bin", "next");
 
-const child = spawn(process.execPath, [nextCli, "build", ...argv], {
+const child = spawn(process.execPath, [nextCli, "dev", ...argv], {
   cwd: root,
   stdio: "inherit",
   env: {

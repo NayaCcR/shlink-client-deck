@@ -1,6 +1,3 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
-
 import {
   createId,
   createToken,
@@ -8,7 +5,6 @@ import {
   hashToken,
   verifyPassword
 } from "@/lib/hosted/crypto";
-import { getHostedDataPath } from "@/lib/hosted/env";
 import {
   canReadShortUrlRecord,
   roleCanCreateShortUrls,
@@ -36,6 +32,10 @@ import type {
   HostedWorkspaceMemberRecord,
   HostedWorkspaceRecord
 } from "@/lib/hosted/types";
+import {
+  readHostedStoreData,
+  writeHostedStoreData
+} from "@/lib/hosted/store-persistence";
 import { normalizeBaseUrl } from "@/lib/utils";
 
 const INITIAL_STORE: HostedStoreData = {
@@ -53,13 +53,6 @@ let writeQueue: Promise<unknown> = Promise.resolve();
 
 function cloneInitialStore(): HostedStoreData {
   return JSON.parse(JSON.stringify(INITIAL_STORE)) as HostedStoreData;
-}
-
-function resolveStorePath() {
-  const configured = getHostedDataPath();
-  return path.isAbsolute(configured)
-    ? configured
-    : path.join(process.cwd(), ".link-console", configured);
 }
 
 function normalizeEmail(email: string) {
@@ -96,26 +89,13 @@ function removeExpiredSessions(data: HostedStoreData) {
 }
 
 async function readData() {
-  const storePath = resolveStorePath();
-
-  try {
-    const content = await readFile(storePath, "utf8");
-    const data = sanitizeData(JSON.parse(content));
-    removeExpiredSessions(data);
-    return data;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return cloneInitialStore();
-    }
-
-    throw error;
-  }
+  const data = sanitizeData(await readHostedStoreData());
+  removeExpiredSessions(data);
+  return data;
 }
 
 async function writeData(data: HostedStoreData) {
-  const storePath = resolveStorePath();
-  await mkdir(path.dirname(storePath), { recursive: true });
-  await writeFile(storePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeHostedStoreData(data);
 }
 
 async function updateData<T>(mutator: (data: HostedStoreData) => T | Promise<T>) {
