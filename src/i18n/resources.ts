@@ -98,7 +98,8 @@ export const resources = {
         baseUrlInvalid: "请输入有效的 URL，例如 https://u.example.com",
         baseUrlProtocol: "API 地址必须以 http:// 或 https:// 开头",
         apiKeyRequired: "请输入 API Key",
-        longUrlInvalid: "请输入有效的长链接"
+        longUrlInvalid: "请输入有效的长链接",
+        protectedPasswordInvalid: "请输入 4 到 200 个字符的访问密码"
       },
       errors: {
         network: "无法连接到 Shlink 服务，请检查 API 地址、网络或 CORS 设置。",
@@ -175,7 +176,11 @@ export const resources = {
         deleteDescription: "这会从当前 Shlink 服务器删除 {{shortUrl}}，操作不可撤销。",
         copyTooltip: "复制短链",
         openLongUrlTooltip: "打开目标链接",
+        openProtectedUrlTooltip: "打开受保护短链",
         editTooltip: "编辑短链",
+        protectedBadge: "需密码",
+        protectedTargetHidden: "受保护短链的真实目标仅在密码验证后跳转",
+        protectedEditDisabled: "受保护短链暂不支持在普通编辑弹窗中修改",
         table: {
           shortUrl: "短链",
           longUrl: "目标链接",
@@ -191,6 +196,10 @@ export const resources = {
         hostedDescription: "请求会发送到本部署后端代理，由服务端解密已保存凭证后调用当前 Shlink 服务。",
         noServerTitle: "请先添加服务器",
         noServerDescription: "没有当前 Shlink 服务器时无法创建短链。",
+        protectedLink: "密码访问",
+        protectedDescription: "Hosted Mode 会把真实目标加密保存在本部署后端，访问者输入密码后再跳转。",
+        protectedPassword: "访问密码",
+        protectedPasswordPlaceholder: "输入 4 到 200 个字符",
         failed: "创建失败",
         success: "创建成功",
         successDescription: "短链已创建并尝试复制到剪贴板：{{url}}"
@@ -358,20 +367,26 @@ export const resources = {
         },
         members: {
           title: "成员管理",
-          description: "管理当前工作区成员和角色。owner 可管理管理员与普通成员，admin 只能管理 member / viewer。",
+          description: "管理当前工作区成员和角色。最高权限账户可管理管理员与普通成员，管理员只能管理成员 / 只读。",
           loading: "正在加载成员",
           loadFailed: "无法加载成员",
           failed: "成员操作失败",
           emptyTitle: "还没有成员",
           emptyDescription: "通过邀请码注册后，成员会出现在这里。",
           currentUser: "你",
+          protectedRole: "受保护",
+          resetPassword: "重置密码",
+          resetPasswordTitle: "重置成员密码",
+          resetPasswordDescription: "为成员设置一个新的登录密码。",
+          passwordInput: "输入密码",
+          randomPassword: "随机",
+          confirmResetPassword: "确认",
           remove: "移除",
           removeTitle: "移除成员",
           removeDescription: "确定要将 {{name}} 移出当前工作区吗？该成员会立即失去对此工作区的访问权限。",
           cancel: "取消",
           confirmRemove: "确认移除",
           roles: {
-            owner: "所有者",
             admin: "管理员",
             member: "成员",
             viewer: "只读"
@@ -423,6 +438,20 @@ export const resources = {
             actions: "操作"
           }
         }
+      },
+      protectedLink: {
+        title: "此短链需要密码",
+        description: "请输入访问密码。验证通过后，Link Console 会跳转到原始目标链接。",
+        password: "访问密码",
+        passwordPlaceholder: "输入密码",
+        unlock: "验证并跳转",
+        invalidTitle: "链接无效",
+        invalidDescription: "这个受保护短链缺少必要的访问令牌。",
+        failedTitle: "无法跳转",
+        failed: "验证失败，请稍后再试。",
+        incorrectPassword: "密码不正确。",
+        redirectingTitle: "验证通过",
+        redirectingDescription: "正在跳转到目标链接。"
       },
       hosted: {
         loading: "正在加载 Hosted Mode",
@@ -557,7 +586,8 @@ export const resources = {
         baseUrlInvalid: "Enter a valid URL, for example https://u.example.com",
         baseUrlProtocol: "API URL must start with http:// or https://",
         apiKeyRequired: "Enter an API key",
-        longUrlInvalid: "Enter a valid long URL"
+        longUrlInvalid: "Enter a valid long URL",
+        protectedPasswordInvalid: "Enter a password between 4 and 200 characters"
       },
       errors: {
         network: "Could not connect to Shlink. Check the API URL, network, or CORS settings.",
@@ -634,7 +664,11 @@ export const resources = {
         deleteDescription: "This will delete {{shortUrl}} from the current Shlink server. This cannot be undone.",
         copyTooltip: "Copy short URL",
         openLongUrlTooltip: "Open target URL",
+        openProtectedUrlTooltip: "Open protected short URL",
         editTooltip: "Edit short URL",
+        protectedBadge: "Password",
+        protectedTargetHidden: "The real target of this protected short URL is only revealed after password verification.",
+        protectedEditDisabled: "Protected short URLs cannot be edited in the standard edit dialog yet.",
         table: {
           shortUrl: "Short URL",
           longUrl: "Target URL",
@@ -650,6 +684,10 @@ export const resources = {
         hostedDescription: "The request is sent to this deployment backend, which decrypts the saved credential and calls the current Shlink server.",
         noServerTitle: "Add a server first",
         noServerDescription: "You cannot create a short URL without a current Shlink server.",
+        protectedLink: "Password access",
+        protectedDescription: "Hosted Mode stores the real target encrypted on this deployment backend and redirects after the visitor enters the password.",
+        protectedPassword: "Access password",
+        protectedPasswordPlaceholder: "Enter 4 to 200 characters",
         failed: "Create failed",
         success: "Created",
         successDescription: "The short URL was created and copied to the clipboard if possible: {{url}}"
@@ -817,20 +855,26 @@ export const resources = {
         },
         members: {
           title: "Members",
-          description: "Manage members and roles in this workspace. Owners can manage admins and regular members; admins can only manage members and viewers.",
+          description: "Manage members and roles in this workspace. Top-level accounts can manage admins and regular members; admins can only manage members and viewers.",
           loading: "Loading members",
           loadFailed: "Could not load members",
           failed: "Member action failed",
           emptyTitle: "No members yet",
           emptyDescription: "Members appear here after registering with an invite.",
           currentUser: "You",
+          protectedRole: "Protected",
+          resetPassword: "Reset password",
+          resetPasswordTitle: "Reset member password",
+          resetPasswordDescription: "Set a new sign-in password for this member.",
+          passwordInput: "Password",
+          randomPassword: "Random",
+          confirmResetPassword: "Confirm",
           remove: "Remove",
           removeTitle: "Remove member",
           removeDescription: "Remove {{name}} from this workspace? They will immediately lose access to this workspace.",
           cancel: "Cancel",
           confirmRemove: "Remove member",
           roles: {
-            owner: "Owner",
             admin: "Admin",
             member: "Member",
             viewer: "Viewer"
@@ -882,6 +926,20 @@ export const resources = {
             actions: "Actions"
           }
         }
+      },
+      protectedLink: {
+        title: "This short URL is protected",
+        description: "Enter the access password. Link Console will redirect to the original target after verification.",
+        password: "Access password",
+        passwordPlaceholder: "Enter password",
+        unlock: "Verify and continue",
+        invalidTitle: "Invalid link",
+        invalidDescription: "This protected short URL is missing the required access token.",
+        failedTitle: "Could not continue",
+        failed: "Verification failed. Please try again.",
+        incorrectPassword: "The password is incorrect.",
+        redirectingTitle: "Verified",
+        redirectingDescription: "Redirecting to the target URL."
       },
       hosted: {
         loading: "Loading Hosted Mode",

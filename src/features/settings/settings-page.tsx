@@ -54,6 +54,7 @@ import {
   useHostedInvites,
   useHostedMembers,
   useRemoveHostedMember,
+  useResetHostedMemberPassword,
   useUpdateHostedMemberRole
 } from "@/features/auth/hosted-hooks";
 import {
@@ -69,7 +70,8 @@ import {
   roleCanInviteRole,
   roleCanManageInvites,
   roleCanManageMemberRole,
-  roleCanManageMembers
+  roleCanManageMembers,
+  roleCanResetMemberPassword
 } from "@/lib/hosted/permissions";
 import type {
   HostedInviteRole,
@@ -87,7 +89,18 @@ type SettingsPageProps = {
 };
 
 const INVITE_ROLES: HostedInviteRole[] = ["member", "viewer", "admin"];
-const MEMBER_ROLES: HostedRole[] = ["owner", "admin", "member", "viewer"];
+const MEMBER_ROLES: HostedInviteRole[] = ["admin", "member", "viewer"];
+const PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+
+function isEditableMemberRole(role: HostedRole): role is HostedInviteRole {
+  return role !== "owner";
+}
+
+function createRandomPassword() {
+  const bytes = new Uint32Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => PASSWORD_CHARS[byte % PASSWORD_CHARS.length]).join("");
+}
 
 function getInviteStatus(invite: HostedWorkspaceInvite) {
   if (invite.disabledAt) {
@@ -487,17 +500,24 @@ function HostedMembersPanel({
   const membersQuery = useHostedMembers(workspaceId, canManageMembers);
   const updateRole = useUpdateHostedMemberRole(workspaceId);
   const removeMember = useRemoveHostedMember(workspaceId);
+  const resetPassword = useResetHostedMemberPassword(workspaceId);
   const [removingMember, setRemovingMember] = React.useState<HostedWorkspaceMember | null>(null);
+  const [resettingMember, setResettingMember] = React.useState<HostedWorkspaceMember | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = React.useState("");
 
   if (!canManageMembers) {
     return null;
   }
 
   const roleOptionsFor = (member: HostedWorkspaceMember) => {
+    if (!isEditableMemberRole(member.role)) {
+      return [];
+    }
+
     const assignableRoles = MEMBER_ROLES.filter((role) =>
       workspaceRole ? roleCanAssignMemberRole(workspaceRole, role) : false
     );
-    return Array.from(new Set([member.role, ...assignableRoles]));
+    return Array.from(new Set<HostedInviteRole>([member.role, ...assignableRoles]));
   };
 
   const canManageMember = (member: HostedWorkspaceMember) =>
@@ -507,7 +527,14 @@ function HostedMembersPanel({
         roleCanManageMemberRole(workspaceRole, member.role)
     );
 
-  const handleRoleChange = async (memberId: string, role: HostedRole) => {
+  const canResetPassword = (member: HostedWorkspaceMember) =>
+    Boolean(
+      workspaceRole &&
+        currentUserId !== member.userId &&
+        roleCanResetMemberPassword(workspaceRole, member.role)
+    );
+
+  const handleRoleChange = async (memberId: string, role: HostedInviteRole) => {
     await updateRole.mutateAsync({ memberId, role });
   };
 
@@ -518,6 +545,19 @@ function HostedMembersPanel({
 
     await removeMember.mutateAsync(removingMember.id);
     setRemovingMember(null);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resettingMember || resetPasswordValue.length < 8) {
+      return;
+    }
+
+    await resetPassword.mutateAsync({
+      memberId: resettingMember.id,
+      password: resetPasswordValue
+    });
+    setResetPasswordValue("");
+    setResettingMember(null);
   };
 
   return (
@@ -534,9 +574,9 @@ function HostedMembersPanel({
         </div>
       </div>
 
-      {updateRole.isError || removeMember.isError ? (
+      {updateRole.isError || removeMember.isError || resetPassword.isError ? (
         <StatusCallout title={t("settings.members.failed")} tone="danger" className="mb-4">
-          {(updateRole.error || removeMember.error)?.message}
+          {(updateRole.error || removeMember.error || resetPassword.error)?.message}
         </StatusCallout>
       ) : null}
 
@@ -570,6 +610,7 @@ function HostedMembersPanel({
             {membersQuery.data.members.map((member) => {
               const isCurrentUser = currentUserId === member.userId;
               const manageable = canManageMember(member);
+              const resettable = canResetPassword(member);
               const roleOptions = roleOptionsFor(member);
               return (
                 <TableRow key={member.id}>
@@ -585,65 +626,136 @@ function HostedMembersPanel({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={member.role}
-                      disabled={!manageable || updateRole.isPending || roleOptions.length === 0}
-                      onValueChange={(value) => void handleRoleChange(member.id, value as HostedRole)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roleOptions.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {t(`settings.members.roles.${role}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {member.role === "owner" ? (
+                      <Badge variant="outline">{t("settings.members.protectedRole")}</Badge>
+                    ) : (
+                      <Select
+                        value={member.role}
+                        disabled={!manageable || updateRole.isPending || roleOptions.length === 0}
+                        onValueChange={(value) =>
+                          void handleRoleChange(member.id, value as HostedInviteRole)
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roleOptions.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {t(`settings.members.roles.${role}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </TableCell>
                   <TableCell>{formatDateTime(member.createdAt, i18n.language)}</TableCell>
                   <TableCell className="text-right">
-                    <AlertDialog
-                      open={removingMember?.id === member.id}
-                      onOpenChange={(open) => setRemovingMember(open ? member : null)}
-                    >
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={!manageable || removeMember.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {t("settings.members.remove")}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {t("settings.members.removeTitle")}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t("settings.members.removeDescription", {
-                              name: member.name
-                            })}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t("settings.members.cancel")}</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => void handleRemove()}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <AlertDialog
+                        open={resettingMember?.id === member.id}
+                        onOpenChange={(open) => {
+                          setResettingMember(open ? member : null);
+                          setResetPasswordValue("");
+                        }}
+                      >
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!resettable || resetPassword.isPending}
                           >
-                            {removeMember.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : null}
-                            {t("settings.members.confirmRemove")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <KeyRound className="h-4 w-4" />
+                            {t("settings.members.resetPassword")}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader className="sr-only">
+                            <AlertDialogTitle>
+                              {t("settings.members.resetPasswordTitle")}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t("settings.members.resetPasswordDescription")}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <div className="space-y-2">
+                            <Label htmlFor={`reset-password-${member.id}`}>
+                              {t("settings.members.passwordInput")}
+                            </Label>
+                            <Input
+                              id={`reset-password-${member.id}`}
+                              autoComplete="new-password"
+                              value={resetPasswordValue}
+                              onChange={(event) => setResetPasswordValue(event.target.value)}
+                            />
+                          </div>
+                          <AlertDialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setResetPasswordValue(createRandomPassword())}
+                            >
+                              {t("settings.members.randomPassword")}
+                            </Button>
+                            <AlertDialogCancel>{t("settings.members.cancel")}</AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={resetPasswordValue.length < 8 || resetPassword.isPending}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                void handleResetPassword();
+                              }}
+                            >
+                              {resetPassword.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : null}
+                              {t("settings.members.confirmResetPassword")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog
+                        open={removingMember?.id === member.id}
+                        onOpenChange={(open) => setRemovingMember(open ? member : null)}
+                      >
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!manageable || removeMember.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {t("settings.members.remove")}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {t("settings.members.removeTitle")}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t("settings.members.removeDescription", {
+                                name: member.name
+                              })}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("settings.members.cancel")}</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => void handleRemove()}
+                            >
+                              {removeMember.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : null}
+                              {t("settings.members.confirmRemove")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

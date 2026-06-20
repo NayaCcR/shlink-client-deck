@@ -194,7 +194,8 @@ export class ShlinkClient {
         validUntil: input.validUntil || undefined,
         domain: input.domain || undefined,
         crawlable: input.crawlable,
-        forwardQuery: input.forwardQuery
+        forwardQuery: input.forwardQuery,
+        linkConsole: input.linkConsole
       }
     });
   }

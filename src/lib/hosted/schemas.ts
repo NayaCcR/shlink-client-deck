@@ -18,6 +18,10 @@ export const hostedPasswordChangeSchema = z.object({
   newPassword: z.string().min(8).max(200)
 });
 
+export const hostedMemberPasswordResetSchema = z.object({
+  password: z.string().min(8).max(200)
+});
+
 export const hostedServerCreateSchema = z.object({
   workspaceId: z.string().min(1),
   name: z.string().trim().min(1).max(60),
@@ -76,5 +80,5 @@ export const hostedInviteCreateSchema = z.object({
 });
 
 export const hostedMemberUpdateSchema = z.object({
-  role: z.enum(["owner", "admin", "member", "viewer"])
+  role: z.enum(["admin", "member", "viewer"])
 });

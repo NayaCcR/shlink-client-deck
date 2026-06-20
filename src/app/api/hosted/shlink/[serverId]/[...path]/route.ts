@@ -1,9 +1,20 @@
 import { requireHostedSession } from "@/lib/hosted/auth";
-import { decryptSecret } from "@/lib/hosted/crypto";
+import {
+  createToken,
+  decryptSecret,
+  encryptSecret,
+  hashOpaqueToken,
+  hashPassword
+} from "@/lib/hosted/crypto";
+import { getPublicAppUrl } from "@/lib/hosted/env";
 import { roleCanCreateShortUrls, roleCanSeeWorkspaceOverview } from "@/lib/hosted/permissions";
 import { apiError, noStoreJson } from "@/lib/hosted/responses";
 import { hostedStore } from "@/lib/hosted/store";
-import type { HostedServerRecord, HostedWorkspaceMemberRecord } from "@/lib/hosted/types";
+import type {
+  HostedServerRecord,
+  HostedShortUrlProtectionRecord,
+  HostedWorkspaceMemberRecord
+} from "@/lib/hosted/types";
 import type {
   ShlinkPagination,
   ShlinkShortUrl,
@@ -31,6 +42,16 @@ const SUPPORTED_METHODS = ["GET", "POST", "PATCH", "DELETE"] as const;
 const SHORT_URL_PAGE_SIZE = 100;
 const VISITS_PAGE_SIZE = 1000;
 
+type LinkConsoleCreateShortUrlPayload = {
+  longUrl?: unknown;
+  linkConsole?: {
+    protection?: {
+      password?: unknown;
+    };
+  };
+  [key: string]: unknown;
+};
+
 function makeUpstreamUrl(baseUrl: string, segments: string[], search?: URLSearchParams) {
   const path = segments.map((segment) => encodeURIComponent(segment)).join("/");
   const query = search?.toString();
@@ -45,6 +66,30 @@ function cloneSearch(search: URLSearchParams) {
   return new URLSearchParams(search.toString());
 }
 
+function getRequestOrigin(request: Request) {
+  const configured = getPublicAppUrl();
+  if (configured) {
+    return configured;
+  }
+
+  const requestUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  if (forwardedHost) {
+    const forwardedProto =
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+      requestUrl.protocol.replace(":", "");
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  return requestUrl.origin;
+}
+
+function buildProtectedUnlockUrl(request: Request, token: string) {
+  const url = new URL("/r", getRequestOrigin(request));
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
 function normalizeDomain(domain?: string | null) {
   const value = domain?.trim();
   return value ? value : null;
@@ -56,6 +101,30 @@ function shortUrlKey(shortUrl: Pick<ShlinkShortUrl, "shortCode" | "domain">) {
 
 function recordKey(record: { shortCode: string; domain?: string | null }) {
   return `${normalizeDomain(record.domain) ?? ""}\u0000${record.shortCode}`;
+}
+
+function applyHostedShortUrlMetadata(
+  shortUrls: ShlinkShortUrl[],
+  records: Array<{ shortCode: string; domain?: string | null; protection?: unknown }>
+) {
+  const recordsByKey = new Map(records.map((record) => [recordKey(record), record]));
+
+  return shortUrls.map((shortUrl) => {
+    const record = recordsByKey.get(shortUrlKey(shortUrl));
+    if (!record?.protection) {
+      return shortUrl;
+    }
+
+    return {
+      ...shortUrl,
+      longUrl: shortUrl.shortUrl,
+      linkConsole: {
+        protection: {
+          enabled: true
+        }
+      }
+    };
+  });
 }
 
 function pagination(page: number, itemsPerPage: number, totalItems: number): ShlinkPagination {
@@ -123,6 +192,38 @@ async function fetchUpstream(
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json().catch(() => ({}))) as T;
+}
+
+function parseCreateShortUrlPayload(text: string) {
+  if (!text.trim()) {
+    return {};
+  }
+
+  return JSON.parse(text) as LinkConsoleCreateShortUrlPayload;
+}
+
+function extractProtectionPassword(payload: LinkConsoleCreateShortUrlPayload) {
+  const password = payload.linkConsole?.protection?.password;
+  const value = typeof password === "string" ? password.trim() : "";
+  return value ? value : null;
+}
+
+function makeProtectionRecord(input: {
+  token: string;
+  password: string;
+  targetUrl: string;
+}): HostedShortUrlProtectionRecord {
+  const timestamp = new Date().toISOString();
+  return {
+    enabled: true,
+    accessTokenHash: hashOpaqueToken(input.token),
+    targetUrlEncrypted: encryptSecret(input.targetUrl),
+    passwordHash: hashPassword(input.password),
+    unlocks: 0,
+    lastUnlockedAt: null,
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
 }
 
 async function responseFromUpstream(response: Response) {
@@ -198,7 +299,10 @@ async function listVisibleShortUrls(
   }
 
   return {
-    urls: fetched.urls.filter((shortUrl) => allowedKeys.has(shortUrlKey(shortUrl)))
+    urls: applyHostedShortUrlMetadata(
+      fetched.urls.filter((shortUrl) => allowedKeys.has(shortUrlKey(shortUrl))),
+      visible.records
+    )
   };
 }
 
@@ -300,10 +404,27 @@ async function handleHostedShortUrls(
 
   if (path.length === 1 && method === "GET") {
     if (canSeeAll) {
-      return responseFromUpstream(
-        await fetchUpstream(access, apiKey, path, {
-          search
-        })
+      const response = await fetchUpstream(access, apiKey, path, {
+        search
+      });
+      if (!response.ok) {
+        return responseFromUpstream(response);
+      }
+
+      const payload = await readJson<ShlinkShortUrlsResponse>(response);
+      const visible = await hostedStore.listVisibleShortUrlRecords(userId, access.server.id);
+      return noStoreJson(
+        {
+          ...payload,
+          shortUrls: {
+            ...payload.shortUrls,
+            data: applyHostedShortUrlMetadata(
+              payload.shortUrls.data,
+              visible?.records ?? []
+            )
+          }
+        } satisfies ShlinkShortUrlsResponse,
+        { status: response.status }
       );
     }
 
@@ -323,10 +444,59 @@ async function handleHostedShortUrls(
       return apiError("FORBIDDEN", "You cannot create short URLs in this workspace.", 403);
     }
 
+    const rawBody = await request.text();
+    let upstreamBody = rawBody;
+    let protection: HostedShortUrlProtectionRecord | null = null;
+
+    if (request.headers.get("content-type")?.includes("application/json")) {
+      try {
+        const payload = parseCreateShortUrlPayload(rawBody);
+        const protectionPassword = extractProtectionPassword(payload);
+        const upstreamPayload = { ...payload };
+        delete upstreamPayload.linkConsole;
+
+        if (protectionPassword) {
+          const longUrl = typeof payload.longUrl === "string" ? payload.longUrl.trim() : "";
+          if (!longUrl) {
+            return apiError("BAD_REQUEST", "A target URL is required.", 400);
+          }
+
+          if (protectionPassword.length < 4 || protectionPassword.length > 200) {
+            return apiError(
+              "BAD_REQUEST",
+              "Protected link passwords must be between 4 and 200 characters.",
+              400
+            );
+          }
+
+          try {
+            const targetUrl = new URL(longUrl);
+            if (!["http:", "https:"].includes(targetUrl.protocol)) {
+              return apiError("BAD_REQUEST", "Only http and https target URLs are supported.", 400);
+            }
+          } catch {
+            return apiError("BAD_REQUEST", "A valid target URL is required.", 400);
+          }
+
+          const token = createToken();
+          upstreamPayload.longUrl = buildProtectedUnlockUrl(request, token);
+          protection = makeProtectionRecord({
+            token,
+            password: protectionPassword,
+            targetUrl: longUrl
+          });
+        }
+
+        upstreamBody = JSON.stringify(upstreamPayload);
+      } catch {
+        return apiError("BAD_REQUEST", "Invalid short URL payload.", 400);
+      }
+    }
+
     const response = await fetchUpstream(access, apiKey, path, {
       method,
       search,
-      body: await request.text(),
+      body: upstreamBody,
       contentType: request.headers.get("content-type")
     });
     if (!response.ok) {
@@ -338,10 +508,24 @@ async function handleHostedShortUrls(
       serverId: access.server.id,
       shortCode: shortUrl.shortCode,
       domain: shortUrl.domain,
-      shortUrl: shortUrl.shortUrl
+      shortUrl: shortUrl.shortUrl,
+      protection
     });
 
-    return noStoreJson(shortUrl, { status: response.status });
+    return noStoreJson(
+      protection
+        ? {
+            ...shortUrl,
+            longUrl: shortUrl.shortUrl,
+            linkConsole: {
+              protection: {
+                enabled: true
+              }
+            }
+          }
+        : shortUrl,
+      { status: response.status }
+    );
   }
 
   if (path.length === 2 && (method === "PATCH" || method === "DELETE")) {
@@ -355,6 +539,14 @@ async function handleHostedShortUrls(
 
     if (!shortUrlAccess?.canManage) {
       return apiError("FORBIDDEN", "You cannot manage this short URL.", 403);
+    }
+
+    if (method === "PATCH" && shortUrlAccess.record?.protection) {
+      return apiError(
+        "CONFLICT",
+        "Protected links must be managed by Link Console protected link settings.",
+        409
+      );
     }
 
     const response = await fetchUpstream(access, apiKey, path, {

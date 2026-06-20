@@ -16,6 +16,7 @@ import {
   logoutHostedAccount,
   registerHostedAccount,
   removeHostedMember,
+  resetHostedMemberPassword,
   testHostedServerConnection,
   toHostedShlinkServer,
   updateHostedMemberRole,
@@ -27,7 +28,7 @@ import {
 } from "@/features/auth/hosted-api";
 import { useServerStore } from "@/features/servers/server-store";
 import { isHostedAppMode } from "@/lib/config/app-mode";
-import type { HostedRole } from "@/lib/hosted/types";
+import type { HostedInviteRole } from "@/lib/hosted/types";
 
 export const hostedSessionKey = ["hosted", "session"] as const;
 export const hostedServersKey = (workspaceId?: string | null) =>
@@ -135,7 +136,7 @@ export function useUpdateHostedMemberRole(workspaceId?: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ memberId, role }: { memberId: string; role: HostedRole }) =>
+    mutationFn: ({ memberId, role }: { memberId: string; role: HostedInviteRole }) =>
       updateHostedMemberRole(memberId, role),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: hostedMembersKey(workspaceId) });
@@ -152,6 +153,18 @@ export function useRemoveHostedMember(workspaceId?: string | null) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: hostedMembersKey(workspaceId) });
       await queryClient.invalidateQueries({ queryKey: hostedSessionKey });
+    }
+  });
+}
+
+export function useResetHostedMemberPassword(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ memberId, password }: { memberId: string; password: string }) =>
+      resetHostedMemberPassword(memberId, password),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedMembersKey(workspaceId) });
     }
   });
 }

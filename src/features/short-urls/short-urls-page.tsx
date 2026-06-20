@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Link2,
   Loader2,
+  LockKeyhole,
   Pencil,
   RefreshCw,
   Trash2
@@ -67,6 +68,10 @@ function ShortUrlTableSkeleton() {
       </div>
     </div>
   );
+}
+
+function isProtectedShortUrl(shortUrl: ShlinkShortUrl) {
+  return Boolean(shortUrl.linkConsole?.protection?.enabled);
 }
 
 function DeleteShortUrlButton({
@@ -213,11 +218,21 @@ export function ShortUrlsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {data.map((item) => {
+                const protectedLink = isProtectedShortUrl(item);
+                return (
                 <TableRow key={`${item.domain || "default"}-${item.shortCode}`}>
                   <TableCell>
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{item.title || item.shortCode}</p>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="truncate font-medium">{item.title || item.shortCode}</p>
+                        {protectedLink ? (
+                          <Badge variant="outline" className="gap-1">
+                            <LockKeyhole className="h-3 w-3" />
+                            {t("shortUrls.protectedBadge")}
+                          </Badge>
+                        ) : null}
+                      </div>
                       <a
                         href={item.shortUrl}
                         target="_blank"
@@ -229,14 +244,20 @@ export function ShortUrlsPage({
                     </div>
                   </TableCell>
                   <TableCell className="hidden max-w-[320px] xl:table-cell">
-                    <a
-                      href={item.longUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      {item.longUrl}
-                    </a>
+                    {protectedLink ? (
+                      <span className="block truncate text-sm text-muted-foreground">
+                        {t("shortUrls.protectedTargetHidden")}
+                      </span>
+                    ) : (
+                      <a
+                        href={item.longUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        {item.longUrl}
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex max-w-[260px] flex-wrap gap-1">
@@ -273,21 +294,41 @@ export function ShortUrlsPage({
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title={t("shortUrls.openLongUrlTooltip")} asChild>
-                        <a href={item.longUrl} target="_blank" rel="noreferrer">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={
+                          protectedLink
+                            ? t("shortUrls.openProtectedUrlTooltip")
+                            : t("shortUrls.openLongUrlTooltip")
+                        }
+                        asChild
+                      >
+                        <a href={protectedLink ? item.shortUrl : item.longUrl} target="_blank" rel="noreferrer">
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       </Button>
                       <QrCodeButton shortUrl={item} />
-                      <EditShortUrlDialog
-                        server={server}
-                        shortUrl={item}
-                        trigger={
-                          <Button variant="ghost" size="icon" title={t("shortUrls.editTooltip")}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
+                      {protectedLink ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={t("shortUrls.protectedEditDisabled")}
+                          disabled
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <EditShortUrlDialog
+                          server={server}
+                          shortUrl={item}
+                          trigger={
+                            <Button variant="ghost" size="icon" title={t("shortUrls.editTooltip")}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                      )}
                       <DeleteShortUrlButton server={server} shortUrl={item} />
                     </div>
                     {copied === item.shortCode ? (
@@ -295,7 +336,8 @@ export function ShortUrlsPage({
                     ) : null}
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+              })}
             </TableBody>
           </Table>
           <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">

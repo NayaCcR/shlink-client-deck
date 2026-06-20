@@ -2,7 +2,6 @@
 
 import type {
   HostedInviteRole,
-  HostedRole,
   HostedServer,
   HostedSession,
   HostedWorkspaceMember,
@@ -208,12 +207,22 @@ export function listHostedMembers(workspaceId?: string) {
   });
 }
 
-export function updateHostedMemberRole(memberId: string, role: HostedRole) {
+export function updateHostedMemberRole(memberId: string, role: HostedInviteRole) {
   return apiRequest<{ member: HostedWorkspaceMember }>(
     `/api/hosted/members/${encodeURIComponent(memberId)}`,
     {
       method: "PATCH",
       body: JSON.stringify({ role })
+    }
+  );
+}
+
+export function resetHostedMemberPassword(memberId: string, password: string) {
+  return apiRequest<{ member: HostedWorkspaceMember }>(
+    `/api/hosted/members/${encodeURIComponent(memberId)}/password`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ password })
     }
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Loader2, Plus } from "lucide-react";
+import { Check, Loader2, LockKeyhole, Plus } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusCallout } from "@/components/ui/status-callout";
+import { Switch } from "@/components/ui/switch";
 import { useCreateShortUrl } from "@/features/short-urls/short-url-hooks";
 import {
   createShortUrlFormSchema,
@@ -39,6 +40,7 @@ export function CreateShortUrlDialog({ server, trigger }: CreateShortUrlDialogPr
   const [createdUrl, setCreatedUrl] = React.useState<string | null>(null);
   const mutation = useCreateShortUrl(server);
   const formSchema = React.useMemo(() => createShortUrlFormSchema(t), [t]);
+  const canCreateProtectedLink = server?.mode === "hosted";
   const form = useForm<ShortUrlFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,9 +50,12 @@ export function CreateShortUrlDialog({ server, trigger }: CreateShortUrlDialogPr
       tagsText: "",
       validSince: "",
       validUntil: "",
-      domain: ""
+      domain: "",
+      protectedEnabled: false,
+      protectedPassword: ""
     }
   });
+  const protectedEnabled = form.watch("protectedEnabled");
 
   const onSubmit = form.handleSubmit(async (values) => {
     const parsed = formSchema.parse(values);
@@ -62,7 +67,15 @@ export function CreateShortUrlDialog({ server, trigger }: CreateShortUrlDialogPr
         tags: parseTagsText(parsed.tagsText),
         validSince: parsed.validSince || undefined,
         validUntil: parsed.validUntil || undefined,
-        domain: parsed.domain || undefined
+        domain: parsed.domain || undefined,
+        linkConsole:
+          canCreateProtectedLink && parsed.protectedEnabled
+            ? {
+                protection: {
+                  password: parsed.protectedPassword?.trim() || ""
+                }
+              }
+            : undefined
       })
       .catch(() => null);
 
@@ -141,6 +154,58 @@ export function CreateShortUrlDialog({ server, trigger }: CreateShortUrlDialogPr
                 <Input id="valid-until" type="datetime-local" {...form.register("validUntil")} />
               </div>
             </div>
+            {canCreateProtectedLink ? (
+              <div className="rounded-lg border border-border bg-secondary/35 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex gap-3">
+                    <LockKeyhole className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="protected-enabled">
+                        {t("createShortUrl.protectedLink")}
+                      </Label>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {t("createShortUrl.protectedDescription")}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="protected-enabled"
+                    checked={Boolean(protectedEnabled)}
+                    onCheckedChange={(checked) => {
+                      form.setValue("protectedEnabled", checked, {
+                        shouldDirty: true,
+                        shouldValidate: true
+                      });
+                      if (!checked) {
+                        form.setValue("protectedPassword", "", {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        });
+                      }
+                    }}
+                  />
+                </div>
+                {protectedEnabled ? (
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="protected-password">
+                      {t("createShortUrl.protectedPassword")}
+                    </Label>
+                    <Input
+                      id="protected-password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={t("createShortUrl.protectedPasswordPlaceholder")}
+                      {...form.register("protectedPassword")}
+                    />
+                    {form.formState.errors.protectedPassword ? (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.protectedPassword.message}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {mutation.isError ? (
               <StatusCallout title={t("createShortUrl.failed")} tone="danger">

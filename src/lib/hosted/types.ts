@@ -38,6 +38,17 @@ export type HostedServerRecord = {
 
 export type HostedShortUrlVisibility = "private" | "workspace";
 
+export type HostedShortUrlProtectionRecord = {
+  enabled: true;
+  accessTokenHash: string;
+  targetUrlEncrypted: string;
+  passwordHash: string;
+  unlocks: number;
+  lastUnlockedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type HostedShortUrlRecord = {
   id: string;
   workspaceId: string;
@@ -48,6 +59,7 @@ export type HostedShortUrlRecord = {
   ownerUserId: string;
   createdByUserId: string;
   visibility: HostedShortUrlVisibility;
+  protection?: HostedShortUrlProtectionRecord | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -12,6 +12,10 @@ export function getHostedDataPath() {
   return process.env.LINK_CONSOLE_DATA_PATH || "hosted-store.json";
 }
 
+export function getPublicAppUrl() {
+  return process.env.LINK_CONSOLE_PUBLIC_URL?.replace(/\/+$/, "") || null;
+}
+
 export function getSessionSecret() {
   return process.env.AUTH_SECRET || "link-console-development-session-secret-change-me";
 }

@@ -35,13 +35,13 @@ export function roleCanManageMemberRole(actorRole: HostedRole, targetRole: Hoste
   return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];
 }
 
-export function roleCanAssignMemberRole(actorRole: HostedRole, targetRole: HostedRole) {
-  if (!roleCanManageMembers(actorRole)) {
-    return false;
-  }
+export function roleCanResetMemberPassword(actorRole: HostedRole, targetRole: HostedRole) {
+  return actorRole === "owner" && targetRole !== "owner";
+}
 
-  if (targetRole === "owner") {
-    return actorRole === "owner";
+export function roleCanAssignMemberRole(actorRole: HostedRole, targetRole: HostedRole) {
+  if (!roleCanManageMembers(actorRole) || targetRole === "owner") {
+    return false;
   }
 
   return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];

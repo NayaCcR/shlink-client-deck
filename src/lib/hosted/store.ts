@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 
-import { createId, createToken, hashToken } from "@/lib/hosted/crypto";
+import {
+  createId,
+  createToken,
+  hashOpaqueToken,
+  hashToken,
+  verifyPassword
+} from "@/lib/hosted/crypto";
 import { getHostedDataPath } from "@/lib/hosted/env";
 import {
   canReadShortUrlRecord,
@@ -13,12 +19,14 @@ import {
   roleCanManageMembers,
   roleCanManageServers,
   roleCanManageShortUrl,
+  roleCanResetMemberPassword,
   roleCanSeeWorkspaceOverview
 } from "@/lib/hosted/permissions";
 import type {
   HostedRole,
   HostedInviteRole,
   HostedServerRecord,
+  HostedShortUrlProtectionRecord,
   HostedShortUrlRecord,
   HostedSessionRecord,
   HostedStoreData,
@@ -403,7 +411,7 @@ export const hostedStore = {
       }>;
   },
 
-  async updateWorkspaceMemberRole(userId: string, memberId: string, role: HostedRole) {
+  async updateWorkspaceMemberRole(userId: string, memberId: string, role: HostedInviteRole) {
     return updateData((data) => {
       const target = data.workspaceMembers.find((item) => item.id === memberId);
       if (!target) {
@@ -422,16 +430,38 @@ export const hostedStore = {
         throw new Error("FORBIDDEN");
       }
 
-      if (
-        target.role === "owner" &&
-        role !== "owner" &&
-        workspaceOwnerCount(data, target.workspaceId) <= 1
-      ) {
-        throw new Error("LAST_OWNER");
-      }
-
       target.role = role;
       return target;
+    });
+  },
+
+  async resetWorkspaceMemberPassword(userId: string, memberId: string, passwordHash: string) {
+    return updateData((data) => {
+      const target = data.workspaceMembers.find((item) => item.id === memberId);
+      if (!target) {
+        return null;
+      }
+
+      const actor = data.workspaceMembers.find(
+        (item) => item.userId === userId && item.workspaceId === target.workspaceId
+      );
+      if (
+        !actor ||
+        actor.id === target.id ||
+        !roleCanResetMemberPassword(actor.role, target.role)
+      ) {
+        throw new Error("FORBIDDEN");
+      }
+
+      const targetUser = data.users.find((item) => item.id === target.userId);
+      if (!targetUser) {
+        return null;
+      }
+
+      targetUser.passwordHash = passwordHash;
+      targetUser.updatedAt = nowIso();
+      data.sessions = data.sessions.filter((session) => session.userId !== target.userId);
+      return { member: target, user: targetUser };
     });
   },
 
@@ -623,6 +653,7 @@ export const hostedStore = {
       domain?: string | null;
       shortUrl: string;
       visibility?: "private" | "workspace";
+      protection?: HostedShortUrlProtectionRecord | null;
     }
   ) {
     return updateData((data) => {
@@ -642,6 +673,7 @@ export const hostedStore = {
       const existing = data.shortUrls.find((record) => shortUrlMatches(record, input));
       if (existing) {
         existing.shortUrl = input.shortUrl;
+        existing.protection = input.protection ?? existing.protection ?? null;
         existing.updatedAt = timestamp;
         return existing;
       }
@@ -656,6 +688,7 @@ export const hostedStore = {
         ownerUserId: userId,
         createdByUserId: userId,
         visibility: input.visibility ?? "private",
+        protection: input.protection ?? null,
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -689,6 +722,29 @@ export const hostedStore = {
 
       data.shortUrls = data.shortUrls.filter((item) => !shortUrlMatches(item, input));
       return true;
+    });
+  },
+
+  async unlockProtectedShortUrl(token: string, password: string) {
+    return updateData((data) => {
+      const tokenHash = hashOpaqueToken(token);
+      const record =
+        data.shortUrls.find((item) => item.protection?.accessTokenHash === tokenHash) ?? null;
+      if (!record?.protection) {
+        return null;
+      }
+
+      if (!verifyPassword(password, record.protection.passwordHash)) {
+        throw new Error("UNAUTHORIZED");
+      }
+
+      const timestamp = nowIso();
+      record.protection.unlocks += 1;
+      record.protection.lastUnlockedAt = timestamp;
+      record.protection.updatedAt = timestamp;
+      record.updatedAt = timestamp;
+
+      return record.protection.targetUrlEncrypted;
     });
   },
 

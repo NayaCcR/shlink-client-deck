@@ -39,6 +39,10 @@ export function hashToken(token: string) {
   return createHash("sha256").update(`${getSessionSecret()}:${token}`).digest("hex");
 }
 
+export function hashOpaqueToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export function hashPassword(password: string) {
   const salt = randomBytes(16);
   const hash = pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, KEY_LENGTH, DIGEST);

@@ -46,6 +46,11 @@ export type ShlinkShortUrl = {
   shortCode: string;
   shortUrl: string;
   longUrl: string;
+  linkConsole?: {
+    protection?: {
+      enabled?: boolean;
+    };
+  };
   dateCreated?: string;
   title?: string | null;
   tags?: string[];
@@ -132,6 +137,11 @@ export type ShlinkCreateShortUrlInput = {
   domain?: string;
   crawlable?: boolean;
   forwardQuery?: boolean;
+  linkConsole?: {
+    protection?: {
+      password: string;
+    };
+  };
 };
 
 export type ShlinkEditShortUrlInput = Partial<
