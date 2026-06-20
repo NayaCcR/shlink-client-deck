@@ -46,6 +46,17 @@ export const resources = {
         closeNavigation: "关闭导航",
         openNavigation: "打开导航"
       },
+      modeSwitcher: {
+        title: "控制台模式",
+        staticLabel: "Static Mode",
+        staticDescription: "纯前端，本地保存凭证",
+        hostedLabel: "Hosted Mode",
+        hostedDescription: "账号系统，服务端代理",
+        openStatic: "打开 Static Mode",
+        openHosted: "打开 Hosted Mode",
+        staticUnavailable: "未配置 Static 入口",
+        hostedUnavailable: "未配置 Hosted 入口"
+      },
       actions: {
         create: "创建",
         createShortUrl: "创建短链",
@@ -317,9 +328,12 @@ export const resources = {
           multiServerDescription: "可以添加多个 Shlink 实例，在顶部栏随时切换。配置可导入导出，便于迁移。",
           hostedMultiServerDescription: "可以在当前工作区添加多个 Shlink 实例，在顶部栏随时切换；凭证集中保存在本部署后端。",
           securityTitle: "Static Mode 安全边界",
-          securityDescription: "API Key 只存储在当前浏览器，不上传到任何第三方服务。它适合个人自用或可信环境；团队和集中凭证管理将由未来 Hosted Mode 提供。",
+          securityDescription: "API Key 只存储在当前浏览器，不上传到任何第三方服务。它适合个人自用或可信环境；团队和集中凭证管理请使用独立部署的 Hosted Mode。",
           hostedSecurityTitle: "Hosted Mode 安全边界",
           hostedSecurityDescription: "API Key 只在添加或更新时提交给本部署后端，加密保存后用于服务端代理请求；前端只会收到脱敏预览。",
+          coexistTitle: "Static / Hosted 共存",
+          coexistDescription: "当前公开站点可以保持纯静态部署；Hosted Mode 需要另一个 Node.js 运行时实例，入口只作为跳转，不会把账号系统塞进静态产物。",
+          openHostedMode: "打开 Hosted Mode",
           examplesTitle: "示例 API 地址",
           examplesDescription: "这些只是文档示例，不会作为默认 Shlink API 地址写入代码。"
         }
@@ -338,11 +352,12 @@ export const resources = {
         staticModeDesc3: "浏览器会直接请求用户配置的 Shlink 服务，并添加 X-Api-Key 请求头。",
         hostedMode: "Hosted Mode",
         hostedConfig: "当前运行配置：allowHostedMode = {{value}}",
-        hostedDesc1: "未来后端将负责注册登录、团队、成员权限、服务端加密保存 API Key 和代理请求。",
-        hostedDesc2: "计划接入 PostgreSQL、Prisma、Auth.js、Redis，并让浏览器不直接接触 API Key。",
+        hostedDesc1: "Hosted Mode 需要独立的 Next.js 服务端运行时，负责注册登录、工作区、成员权限、服务端加密保存 API Key 和代理请求。",
+        hostedDesc2: "Static Mode 不能原地切换成 Hosted Mode；可以通过配置 Hosted 入口跳转到另一个部署。",
         hostedEnabledDesc1: "当前部署已启用注册、登录、工作区、服务端加密保存 Shlink API Key 和后端代理请求。",
-        hostedEnabledDesc2: "数据层目前使用本地文件存储，后续可按 README 迁移到 PostgreSQL、Prisma、Auth.js 和 Redis。",
+        hostedEnabledDesc2: "数据层由配置选择，后续可继续演进到 PostgreSQL、Prisma、Auth.js 和 Redis。",
         hostedDisabled: "Hosted Mode 尚未启用",
+        openHostedMode: "打开 Hosted Mode",
         account: {
           title: "账号安全",
           description: "修改当前 Hosted 账号的登录密码。密码只会以哈希形式保存在本部署后端。",
@@ -504,6 +519,17 @@ export const resources = {
         englishShort: "EN",
         closeNavigation: "Close navigation",
         openNavigation: "Open navigation"
+      },
+      modeSwitcher: {
+        title: "Console mode",
+        staticLabel: "Static Mode",
+        staticDescription: "Frontend only, local credentials",
+        hostedLabel: "Hosted Mode",
+        hostedDescription: "Accounts and backend proxy",
+        openStatic: "Open Static Mode",
+        openHosted: "Open Hosted Mode",
+        staticUnavailable: "Static entry is not configured",
+        hostedUnavailable: "Hosted entry is not configured"
       },
       actions: {
         create: "Create",
@@ -776,9 +802,12 @@ export const resources = {
           multiServerDescription: "Add multiple Shlink instances and switch anytime in the top bar. Config can be imported and exported for migration.",
           hostedMultiServerDescription: "Add multiple Shlink instances to the current workspace and switch anytime in the top bar. Credentials are managed centrally by this deployment backend.",
           securityTitle: "Static Mode security boundary",
-          securityDescription: "API keys are stored only in this browser and never uploaded to a third-party service. This is suitable for personal or trusted environments. Teams and centralized credential management will come with Hosted Mode.",
+          securityDescription: "API keys are stored only in this browser and never uploaded to a third-party service. This is suitable for personal or trusted environments. Use a separate Hosted Mode deployment for teams and centralized credential management.",
           hostedSecurityTitle: "Hosted Mode security boundary",
           hostedSecurityDescription: "API keys are submitted only when adding or updating a server, encrypted at rest, and used by the server-side proxy. The frontend only receives a masked preview.",
+          coexistTitle: "Static / Hosted coexistence",
+          coexistDescription: "The public site can stay fully static. Hosted Mode needs a separate Node.js runtime, and this entry only links to that deployment instead of adding auth APIs to static assets.",
+          openHostedMode: "Open Hosted Mode",
           examplesTitle: "Example API URLs",
           examplesDescription: "These are documentation examples only. They are not written into the code as default Shlink API URLs."
         }
@@ -797,11 +826,12 @@ export const resources = {
         staticModeDesc3: "The browser calls the configured Shlink server directly with the X-Api-Key header.",
         hostedMode: "Hosted Mode",
         hostedConfig: "Runtime config: allowHostedMode = {{value}}",
-        hostedDesc1: "Future backend support will cover auth, teams, member roles, encrypted API keys, and proxying.",
-        hostedDesc2: "Planned integrations include PostgreSQL, Prisma, Auth.js, and Redis.",
+        hostedDesc1: "Hosted Mode needs a separate Next.js server runtime for auth, workspaces, member roles, encrypted API keys, and proxying.",
+        hostedDesc2: "Static Mode cannot switch into Hosted Mode in place. Configure a Hosted entry URL to link to another deployment.",
         hostedEnabledDesc1: "This deployment enables registration, login, workspaces, server-side encrypted Shlink API keys, and backend proxying.",
-        hostedEnabledDesc2: "The current data layer uses local file storage and can later be migrated to PostgreSQL, Prisma, Auth.js, and Redis.",
+        hostedEnabledDesc2: "Storage is selected by config and can keep evolving toward PostgreSQL, Prisma, Auth.js, and Redis.",
         hostedDisabled: "Hosted Mode is not enabled",
+        openHostedMode: "Open Hosted Mode",
         account: {
           title: "Account security",
           description: "Change the password for the current Hosted account. Passwords are stored only as hashes by this deployment backend.",

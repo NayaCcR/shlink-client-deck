@@ -5,6 +5,7 @@ export const runtimeConfigSchema = z.object({
   defaultLocale: z.string().default("zh-CN"),
   allowStaticMode: z.boolean().default(true),
   allowHostedMode: z.boolean().default(false),
+  hostedModeUrl: z.string().url().nullable().default(null),
   demoServer: z
     .object({
       name: z.string(),
@@ -23,6 +24,7 @@ export const fallbackRuntimeConfig: RuntimeConfig = {
   defaultLocale: "zh-CN",
   allowStaticMode: true,
   allowHostedMode: false,
+  hostedModeUrl: null,
   demoServer: null,
   officialSite: "https://link.31n.cc"
 };

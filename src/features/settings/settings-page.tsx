@@ -3,6 +3,7 @@
 import {
   Copy,
   Database,
+  ExternalLink,
   Globe2,
   KeyRound,
   Loader2,
@@ -669,6 +670,7 @@ export function SettingsPage({
   const setLocale = useSettingsStore((state) => state.setLocale);
   const { data: config } = useRuntimeConfig();
   const hostedMode = mode === "hosted";
+  const hostedModeUrl = !hostedMode && config?.allowHostedMode ? config.hostedModeUrl : null;
 
   const handleTheme = (value: AppTheme) => {
     setStoredTheme(value);
@@ -774,9 +776,18 @@ export function SettingsPage({
             <p>{hostedMode ? t("settings.hostedEnabledDesc2") : t("settings.hostedDesc2")}</p>
           </div>
           {!hostedMode ? (
-            <Button className="mt-4" variant="outline" disabled>
-              {t("settings.hostedDisabled")}
-            </Button>
+            hostedModeUrl ? (
+              <Button asChild className="mt-4" variant="outline">
+                <a href={hostedModeUrl}>
+                  <ExternalLink className="h-4 w-4" />
+                  {t("settings.openHostedMode")}
+                </a>
+              </Button>
+            ) : (
+              <Button className="mt-4" variant="outline" disabled>
+                {t("settings.hostedDisabled")}
+              </Button>
+            )
           ) : null}
         </section>
       </div>

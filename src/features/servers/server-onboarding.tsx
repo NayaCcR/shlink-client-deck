@@ -4,6 +4,7 @@ import { FileUp, Link2, Server } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { ModeSwitcher } from "@/components/app/mode-switcher";
 import { Button } from "@/components/ui/button";
 import { StatusCallout } from "@/components/ui/status-callout";
 import { ServerFormDialog } from "@/features/servers/server-form-dialog";
@@ -23,6 +24,7 @@ export function ServerOnboarding({
 
   return (
     <main className="min-h-screen bg-background">
+      <ModeSwitcher mode={mode} />
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <section>
