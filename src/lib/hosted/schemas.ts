@@ -18,6 +18,12 @@ export const hostedPasswordChangeSchema = z.object({
   newPassword: z.string().min(8).max(200)
 });
 
+export const hostedProfileSetupSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200)
+});
+
 export const hostedMemberPasswordResetSchema = z.object({
   password: z.string().min(8).max(200)
 });

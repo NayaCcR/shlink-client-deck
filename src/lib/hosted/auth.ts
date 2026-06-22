@@ -14,11 +14,19 @@ function expiresAt() {
   return new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000).toISOString();
 }
 
-export function toPublicUser(user: { id: string; name: string; email: string }): HostedUser {
+export function toPublicUser(user: {
+  id: string;
+  name: string;
+  email: string;
+  siteRole?: "site_owner" | "user";
+  mustChangeProfile?: boolean;
+}): HostedUser {
   return {
     id: user.id,
     name: user.name,
-    email: user.email
+    email: user.email,
+    siteRole: user.siteRole ?? "user",
+    mustChangeProfile: user.mustChangeProfile ?? false
   };
 }
 

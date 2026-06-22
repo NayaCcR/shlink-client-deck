@@ -10,6 +10,21 @@ Link Console 是一个现代化、中文优先、可开源自部署的第三方 
 
 注意：`link.31n.cc` 是管理面板自己的域名，不是默认 Shlink API 地址。用户需要自行添加自己的 Shlink 服务，例如 `https://u.31n.cc`、`https://go.example.com`、`https://s.example.org`。
 
+## 发布模式
+
+公开站建议使用 Static Mode：它只是一个纯前端控制台，用户在自己的浏览器里保存 Shlink Server 和 API Key。
+
+Hosted Mode 是自部署/私有部署模式，需要 Next.js 服务端运行时和数据存储。Static Mode 不能原地切换成 Hosted Mode；如果你另行部署了 Hosted 实例，可以在 `public/config.json` 里配置入口：
+
+```json
+{
+  "allowHostedMode": true,
+  "hostedModeUrl": "https://links.31n.cc"
+}
+```
+
+这样左下角的模式切换器只会跳转到另一个部署。`hostedModeUrl` 是 Link Console Hosted 实例地址，不是 Shlink API 地址，也不表示该实例面向公众开放。
+
 ## 项目定位
 
 - 第三方 Shlink Web Client，不替代 Shlink 后端。
@@ -152,7 +167,8 @@ npm run build:hosted
   "appName": "Link Console",
   "defaultLocale": "zh-CN",
   "allowStaticMode": true,
-  "allowHostedMode": false,
+  "allowHostedMode": true,
+  "hostedModeUrl": "https://links.31n.cc",
   "demoServer": null,
   "officialSite": "https://link.31n.cc"
 }
@@ -164,6 +180,7 @@ npm run build:hosted
 - `defaultLocale`：默认语言。
 - `allowStaticMode`：是否允许 Static Mode 说明与入口。
 - `allowHostedMode`：是否允许展示 Hosted Mode 相关说明。
+- `hostedModeUrl`：可选 Hosted Mode 部署入口。它只用于从 Static Mode 跳转到另一个 Link Console Hosted 实例，不是 Shlink API 地址。
 - `demoServer`：演示服务器占位，默认 `null`。不要放生产 API Key。
 - `officialSite`：项目或预发布站点地址。
 
@@ -202,6 +219,8 @@ openssl rand -base64 32
 `LINK_CONSOLE_STORE_DRIVER` 支持 `sqlite`、`postgres`/`pgsql`、`mysql`、`redis` 和 `json`。默认是 `sqlite`，数据文件位于 `.link-console/hosted-store.sqlite`。PostgreSQL/MySQL/Redis 是可选驱动，选择对应后端时需要在部署环境安装对应 npm 包并提供连接串。
 
 ## Static Mode 部署
+
+`https://link.31n.cc` 推荐使用这一种部署方式。
 
 构建：
 

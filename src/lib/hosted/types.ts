@@ -1,11 +1,14 @@
 export type HostedRole = "owner" | "admin" | "member" | "viewer";
 export type HostedInviteRole = Exclude<HostedRole, "owner">;
+export type HostedSiteRole = "site_owner" | "user";
 
 export type HostedUserRecord = {
   id: string;
   name: string;
   email: string;
   passwordHash: string;
+  siteRole: HostedSiteRole;
+  mustChangeProfile: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -102,6 +105,8 @@ export type HostedUser = {
   id: string;
   name: string;
   email: string;
+  siteRole: HostedSiteRole;
+  mustChangeProfile: boolean;
 };
 
 export type HostedWorkspace = {
@@ -140,6 +145,28 @@ export type HostedWorkspaceInvite = {
   uses: number;
   expiresAt: string | null;
   disabledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type HostedSiteUser = {
+  id: string;
+  name: string;
+  email: string;
+  siteRole: HostedSiteRole;
+  workspaceCount: number;
+  createdAt: string;
+  updatedAt: string;
+  mustChangeProfile: boolean;
+};
+
+export type HostedSiteServer = {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  name: string;
+  baseUrl: string;
+  apiKeyPreview: string;
   createdAt: string;
   updatedAt: string;
 };

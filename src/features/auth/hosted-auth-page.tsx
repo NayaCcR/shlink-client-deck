@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusCallout } from "@/components/ui/status-callout";
+import { ModeSwitcher } from "@/components/app/mode-switcher";
 import { ThemeLanguageControls } from "@/components/app/app-shell";
 import { useHostedLogin, useHostedRegister } from "@/features/auth/hosted-hooks";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ export function HostedAuthPage() {
 
   return (
     <main className="min-h-screen bg-muted/25 text-foreground">
+      <ModeSwitcher mode="hosted" />
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">

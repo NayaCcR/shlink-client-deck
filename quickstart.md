@@ -30,6 +30,20 @@ npm run build
 
 The static output is written to `out/`.
 
+For public demos, prefer Static Mode.
+
+If you also run a private Hosted deployment, expose it as a separate URL and link to it from the static site:
+
+```jsonc
+// public/config.json
+{
+  "allowHostedMode": true,
+  "hostedModeUrl": "https://links.31n.cc"
+}
+```
+
+`hostedModeUrl` is the Link Console Hosted URL, not a Shlink API URL. Static assets still cannot run Hosted APIs by themselves, and this URL does not imply a public Hosted service.
+
 ## Hosted Mode
 
 Use this when you need login, workspaces, member permissions, encrypted API keys, backend proxying, or password-protected short links.
@@ -67,6 +81,8 @@ npm run start:hosted
 ```
 
 Default URL: <http://localhost:3000>.
+
+In production, put Hosted Mode behind its own domain or subdomain, then set `app.publicUrl` in `link-console.config.json` to that public URL.
 
 ## Custom Config Path
 
