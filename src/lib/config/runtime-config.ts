@@ -26,7 +26,7 @@ export const fallbackRuntimeConfig: RuntimeConfig = {
   allowHostedMode: false,
   hostedModeUrl: null,
   demoServer: null,
-  officialSite: "https://link.31n.cc"
+  officialSite: "https://shlink.31n.cc"
 };
 
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {

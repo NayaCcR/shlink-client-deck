@@ -23,7 +23,7 @@ export function ModeSwitcher({ mode }: ModeSwitcherProps) {
   const { data: config } = useRuntimeConfig();
   const isHosted = mode === "hosted";
   const hostedUrl = config?.allowHostedMode ? config.hostedModeUrl : null;
-  const staticUrl = config?.officialSite || "https://link.31n.cc";
+  const staticUrl = config?.officialSite || "https://shlink.31n.cc";
   const targetUrl = isHosted ? staticUrl : hostedUrl;
   const CurrentIcon = isHosted ? ServerCog : MonitorSmartphone;
   const targetLabel = isHosted ? t("modeSwitcher.openStatic") : t("modeSwitcher.openHosted");

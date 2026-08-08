@@ -172,7 +172,7 @@ npm run build:hosted
   "allowHostedMode": false,
   "hostedModeUrl": null,
   "demoServer": null,
-  "officialSite": "https://link.31n.cc"
+  "officialSite": "https://shlink.31n.cc"
 }
 ```
 
