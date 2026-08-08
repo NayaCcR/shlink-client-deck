@@ -80,7 +80,20 @@ npm run build:hosted
 npm run start:hosted
 ```
 
-Default URL: <http://localhost:3000>.
+生产环境的 `start-hosted.mjs` 默认监听 `31008`，本机访问地址为 <http://localhost:31008>。开发模式 `npm run dev:hosted` 仍默认使用 Next.js 的 `3000` 端口。
+
+需要更换生产端口时设置 `PORT`：
+
+```bash
+PORT=32000 npm run start:hosted
+```
+
+Windows PowerShell：
+
+```powershell
+$env:PORT = "32000"
+npm run start:hosted
+```
 
 In production, put Hosted Mode behind its own domain or subdomain, then set `app.publicUrl` in `link-console.config.json` to that public URL.
 

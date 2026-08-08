@@ -9,13 +9,15 @@ process.chdir(root);
 
 const { argv } = await loadLinkConsoleConfig();
 const nextCli = join(root, "node_modules", "next", "dist", "bin", "next");
+const port = process.env.PORT || "31008";
 
 const child = spawn(process.execPath, [nextCli, "start", ...argv], {
   cwd: root,
   stdio: "inherit",
   env: {
     ...process.env,
-    NEXT_PUBLIC_APP_MODE: "hosted"
+    NEXT_PUBLIC_APP_MODE: "hosted",
+    PORT: port
   }
 });
 

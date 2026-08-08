@@ -2,8 +2,8 @@
   "appName": "Link Console",
   "defaultLocale": "zh-CN",
   "allowStaticMode": true,
-  "allowHostedMode": true,
-  "hostedModeUrl": "https://links.31n.cc",
+  "allowHostedMode": false,
+  "hostedModeUrl": null,
   "demoServer": null,
   "officialSite": "https://link.31n.cc"
 }

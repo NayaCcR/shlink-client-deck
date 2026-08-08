@@ -8,7 +8,7 @@
     "dev:hosted": "node scripts/dev-hosted.mjs",
     "build": "node scripts/build-static.mjs",
     "build:hosted": "node scripts/build-hosted.mjs",
-    "start": "next start",
+    "start": "node scripts/start-hosted.mjs",
     "start:hosted": "node scripts/start-hosted.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "next lint"

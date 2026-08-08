@@ -4,6 +4,8 @@
 
 Link Console 是一个现代化、中文优先、可开源自部署的第三方 Shlink 管理面板。它不修改 Shlink 后端，不硬编码任何 Shlink 服务地址，也不硬编码 API Key，目标是让个人、团队和开发者都能用自己的 Shlink 实例搭建一套更现代、更本地化的短链控制台。
 
+完整文档见 [`docs/`](./docs/README.md)，包括[使用指南](./docs/usage.md)、[开发指南](./docs/development.md)、[部署指南](./docs/deployment.md)和 [API 参考](./docs/api.md)。
+
 项目同时支持两种运行方式：Static Mode 适合纯前端静态部署，用户在浏览器本地保存自己的 Shlink Server 和 API Key；Hosted Mode 适合团队使用，提供注册登录、工作区、邀请码、成员权限、服务端加密保存 Shlink 凭证和后端代理请求。Link Console 自身只是管理面板，预发布域名 `link.31n.cc` 不是默认 Shlink API 地址，所有 Shlink 服务都来自用户或管理员配置。
 
 预发布面板域名：<https://link.31n.cc>
@@ -19,11 +21,11 @@ Hosted Mode 是自部署/私有部署模式，需要 Next.js 服务端运行时�
 ```json
 {
   "allowHostedMode": true,
-  "hostedModeUrl": "https://links.31n.cc"
+  "hostedModeUrl": "https://your-hosted.example.com"
 }
 ```
 
-这样左下角的模式切换器只会跳转到另一个部署。`hostedModeUrl` 是 Link Console Hosted 实例地址，不是 Shlink API 地址，也不表示该实例面向公众开放。
+这样左下角的模式切换器只会跳转到你自己的 Hosted 部署。`hostedModeUrl` 是 Link Console Hosted 实例地址，不是 Shlink API 地址，也不表示该实例面向公众开放。
 
 ## 项目定位
 
@@ -167,8 +169,8 @@ npm run build:hosted
   "appName": "Link Console",
   "defaultLocale": "zh-CN",
   "allowStaticMode": true,
-  "allowHostedMode": true,
-  "hostedModeUrl": "https://links.31n.cc",
+  "allowHostedMode": false,
+  "hostedModeUrl": null,
   "demoServer": null,
   "officialSite": "https://link.31n.cc"
 }
@@ -211,7 +213,7 @@ LINK_CONSOLE_LEGACY_JSON_IMPORT_PATH=hosted-store.json
 可以用下面的命令生成密钥：
 
 ```bash
-openssl rand -base64 32
+openssl rand -base64 24
 ```
 
 `AUTH_SECRET` 用于会话 token 哈希，`SHLINK_CREDENTIAL_ENCRYPTION_KEY` 用于 Shlink API Key 和受保护短链目标 URL 加密。生产环境请使用稳定且独立的强随机值；更换加密密钥会导致旧凭证和已保存的受保护短链目标无法解密。`LINK_CONSOLE_PUBLIC_URL` 是当前 Link Console 面板的公网地址，用于生成受保护短链解锁页，不是 Shlink API 地址。
@@ -280,7 +282,7 @@ npm run build:hosted
 npm run start:hosted
 ```
 
-默认监听 `3000`，可通过反向代理暴露到正式域名。启用受保护短链时，建议在服务端环境变量中设置 `LINK_CONSOLE_PUBLIC_URL` 为反向代理后的公网地址。
+生产启动脚本默认监听 `31008`，可通过反向代理暴露到正式域名。需要更换端口时设置 `PORT`，例如 `PORT=32000 npm run start:hosted`，并同步修改反向代理上游地址。启用受保护短链时，建议在服务端环境变量中设置 `LINK_CONSOLE_PUBLIC_URL` 为反向代理后的公网地址。
 
 如果不想使用默认文件名，可以指定配置文件：
 
