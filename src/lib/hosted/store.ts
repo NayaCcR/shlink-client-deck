@@ -71,7 +71,13 @@ function sanitizeData(value: unknown): HostedStoreData {
   const data = value as Partial<HostedStoreData>;
   return {
     schemaVersion: 1,
-    users: Array.isArray(data.users) ? data.users : [],
+    users: Array.isArray(data.users)
+      ? data.users.map((user) => ({
+          ...user,
+          siteRole: user.siteRole ?? "user",
+          mustChangeProfile: user.mustChangeProfile ?? false
+        }))
+      : [],
     workspaces: Array.isArray(data.workspaces) ? data.workspaces : [],
     workspaceMembers: Array.isArray(data.workspaceMembers) ? data.workspaceMembers : [],
     servers: Array.isArray(data.servers) ? data.servers : [],
@@ -197,6 +203,8 @@ export const hostedStore = {
         name: input.name.trim(),
         email,
         passwordHash: input.passwordHash,
+        siteRole: "user",
+        mustChangeProfile: false,
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -253,6 +261,8 @@ export const hostedStore = {
         name: input.name.trim(),
         email,
         passwordHash: input.passwordHash,
+        siteRole: "user",
+        mustChangeProfile: false,
         createdAt: timestamp,
         updatedAt: timestamp
       };

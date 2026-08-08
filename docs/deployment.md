@@ -32,7 +32,7 @@ npm run build
 
 ```bash
 npm install
-Copy-Item link-console.config.example.json link-console.config.json
+cp link-console.config.example.json link-console.config.json
 npm run build:hosted
 npm run start:hosted
 ```
