@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { createToken, hashToken } from "@/lib/hosted/crypto";
@@ -81,12 +81,21 @@ export async function getSessionToken() {
 }
 
 export async function getHostedSession() {
-  const token = await getSessionToken();
+  const requestHeaders = await headers();
+  const authorization = requestHeaders.get("authorization");
+  const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const token = bearer || (await getSessionToken());
   if (!token) {
     return null;
   }
 
-  const session = await hostedStore.getSession(hashToken(token));
+  const session = bearer
+    ? await hostedStore.getApiToken(hashToken(token)).then(async (apiToken) => {
+        if (!apiToken) return null;
+        await hostedStore.markApiTokenUsed(apiToken.id);
+        return hostedStore.getSessionForUser(apiToken.userId);
+      })
+    : await hostedStore.getSession(hashToken(token));
   if (!session) {
     return null;
   }

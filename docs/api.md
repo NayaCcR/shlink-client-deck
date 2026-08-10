@@ -1,6 +1,6 @@
 # API 参考
 
-Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会话查询、登出和受保护链接解锁外，接口需要 HttpOnly 会话 Cookie。请求体使用 JSON；错误统一为 `{ "error": { "code": string, "message": string, "details"?: unknown } }`。
+Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会话查询、登出和受保护链接解锁外，接口需要 HttpOnly 会话 Cookie，或使用当前用户创建的 `Authorization: Bearer <token>`。请求体使用 JSON；错误统一为 `{ "error": { "code": string, "message": string, "details"?: unknown } }`。
 
 ## 认证
 
@@ -11,6 +11,9 @@ Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会�
 | `GET` | `/api/hosted/auth/session` | 返回 `{ enabled, session }`。 |
 | `POST` | `/api/hosted/auth/logout` | 删除当前会话。 |
 | `POST` | `/api/hosted/auth/password` | 修改密码：`currentPassword`、`newPassword`（至少 8 位）。 |
+| `GET` | `/api/hosted/auth/tokens` | 列出当前用户的 Token 元数据，不返回 Token 明文。 |
+| `POST` | `/api/hosted/auth/tokens` | 创建 Token。body：`name`，可选未来时间 `expiresAt`（ISO 8601）。明文仅在创建响应中返回一次。 |
+| `DELETE` | `/api/hosted/auth/tokens/<tokenId>` | 撤销当前用户自己的 Token。 |
 
 ## 服务器
 
@@ -34,6 +37,23 @@ Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会�
 ## Shlink 代理
 
 `/api/hosted/shlink/<serverId>/<path...>` 支持 `GET`、`POST`、`PATCH`、`DELETE`，将请求转发到已保存服务器的 `/rest/v3/<path>`，并由服务端注入 `X-Api-Key`。常用路径包括 `health`、`short-urls`、`short-urls/<code>`、`short-urls/<code>/visits`、`visits/non-orphan`、`tags` 和 `tags/<tag>/visits`。普通成员只能访问自己可见的短链和统计，workspace admin 可访问全局资源。
+
+### Bearer Token 调用
+
+创建 Token 后，第三方程序在请求头中使用：
+
+```http
+Authorization: Bearer <token>
+```
+
+Token 与浏览器会话使用同一套用户和工作区权限。服务端只保存 Token 哈希；创建响应中的 `token` 只显示一次，丢失后必须重新创建。Token 过期或撤销后返回 `401`。
+
+```bash
+curl -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"longUrl":"https://example.com","domain":"u.31n.cc"}' \
+  https://link.31n.cc/api/hosted/shlink/<serverId>/short-urls
+```
 
 创建受保护短链时，在普通 Shlink JSON 外附加：
 

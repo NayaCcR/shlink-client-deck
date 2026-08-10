@@ -90,7 +90,8 @@ function isHostedStoreData(value: unknown): value is HostedStoreData {
     Array.isArray(data.servers) &&
     Array.isArray(data.shortUrls) &&
     Array.isArray(data.invites) &&
-    Array.isArray(data.sessions)
+    Array.isArray(data.sessions) &&
+    (data.apiTokens === undefined || Array.isArray(data.apiTokens))
   );
 }
 

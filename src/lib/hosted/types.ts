@@ -90,6 +90,19 @@ export type HostedSessionRecord = {
   createdAt: string;
 };
 
+export type HostedApiTokenRecord = {
+  id: string;
+  userId: string;
+  name: string;
+  tokenHash: string;
+  tokenPreview: string;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+};
+
 export type HostedStoreData = {
   schemaVersion: 1;
   users: HostedUserRecord[];
@@ -99,7 +112,10 @@ export type HostedStoreData = {
   shortUrls: HostedShortUrlRecord[];
   invites: HostedWorkspaceInviteRecord[];
   sessions: HostedSessionRecord[];
+  apiTokens: HostedApiTokenRecord[];
 };
+
+export type HostedApiToken = Omit<HostedApiTokenRecord, "tokenHash">;
 
 export type HostedUser = {
   id: string;

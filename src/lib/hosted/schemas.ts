@@ -88,3 +88,15 @@ export const hostedInviteCreateSchema = z.object({
 export const hostedMemberUpdateSchema = z.object({
   role: z.enum(["admin", "member", "viewer"])
 });
+
+export const hostedApiTokenCreateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  expiresAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .refine((value) => !value || new Date(value).getTime() > Date.now(), {
+      message: "Expiration date must be in the future."
+    })
+});

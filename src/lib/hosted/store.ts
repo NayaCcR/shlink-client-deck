@@ -22,6 +22,7 @@ import type {
   HostedRole,
   HostedInviteRole,
   HostedServerRecord,
+  HostedApiTokenRecord,
   HostedShortUrlProtectionRecord,
   HostedShortUrlRecord,
   HostedSessionRecord,
@@ -46,7 +47,8 @@ const INITIAL_STORE: HostedStoreData = {
   servers: [],
   shortUrls: [],
   invites: [],
-  sessions: []
+  sessions: [],
+  apiTokens: []
 };
 
 let writeQueue: Promise<unknown> = Promise.resolve();
@@ -83,7 +85,8 @@ function sanitizeData(value: unknown): HostedStoreData {
     servers: Array.isArray(data.servers) ? data.servers : [],
     shortUrls: Array.isArray(data.shortUrls) ? data.shortUrls : [],
     invites: Array.isArray(data.invites) ? data.invites : [],
-    sessions: Array.isArray(data.sessions) ? data.sessions : []
+    sessions: Array.isArray(data.sessions) ? data.sessions : [],
+    apiTokens: Array.isArray(data.apiTokens) ? data.apiTokens : []
   };
 }
 
@@ -479,6 +482,7 @@ export const hostedStore = {
 
       data.workspaceMembers = data.workspaceMembers.filter((item) => item.id !== memberId);
       data.sessions = data.sessions.filter((session) => session.userId !== target.userId);
+      data.apiTokens = data.apiTokens.filter((token) => token.userId !== target.userId);
       return true;
     });
   },
@@ -505,6 +509,74 @@ export const hostedStore = {
     });
   },
 
+  async createApiToken(input: {
+    userId: string;
+    name: string;
+    tokenHash: string;
+    tokenPreview: string;
+    expiresAt?: string | null;
+  }) {
+    return updateData((data) => {
+      const timestamp = nowIso();
+      const token: HostedApiTokenRecord = {
+        id: createId("pat"),
+        userId: input.userId,
+        name: input.name.trim(),
+        tokenHash: input.tokenHash,
+        tokenPreview: input.tokenPreview,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        lastUsedAt: null,
+        expiresAt: input.expiresAt ?? null,
+        revokedAt: null
+      };
+      data.apiTokens.push(token);
+      return token;
+    });
+  },
+
+  async listApiTokens(userId: string) {
+    const data = await readData();
+    return data.apiTokens
+      .filter((token) => token.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  async revokeApiToken(userId: string, tokenId: string) {
+    return updateData((data) => {
+      const token = data.apiTokens.find((item) => item.id === tokenId && item.userId === userId);
+      if (!token) return null;
+      if (!token.revokedAt) {
+        token.revokedAt = nowIso();
+        token.updatedAt = token.revokedAt;
+      }
+      return token;
+    });
+  },
+
+  async getApiToken(tokenHash: string) {
+    const data = await readData();
+    const token = data.apiTokens.find((item) => item.tokenHash === tokenHash);
+    if (
+      !token ||
+      token.revokedAt ||
+      (token.expiresAt && new Date(token.expiresAt).getTime() <= Date.now())
+    ) {
+      return null;
+    }
+    return token;
+  },
+
+  async markApiTokenUsed(tokenId: string) {
+    return updateData((data) => {
+      const token = data.apiTokens.find((item) => item.id === tokenId);
+      if (!token) return null;
+      token.lastUsedAt = nowIso();
+      token.updatedAt = token.lastUsedAt;
+      return token;
+    });
+  },
+
   async getSession(tokenHash: string) {
     const data = await readData();
     const session = data.sessions.find((item) => item.tokenHash === tokenHash);
@@ -512,7 +584,13 @@ export const hostedStore = {
       return null;
     }
 
-    const user = data.users.find((item) => item.id === session.userId);
+    return this.getSessionForUser(session.userId);
+  },
+
+  async getSessionForUser(userId: string) {
+    const data = await readData();
+
+    const user = data.users.find((item) => item.id === userId);
     if (!user) {
       return null;
     }
@@ -533,7 +611,11 @@ export const hostedStore = {
       })
       .filter(Boolean) as HostedWorkspace[];
 
-    return { session, user, workspaces };
+    return {
+      session: data.sessions.find((item) => item.userId === userId) ?? null,
+      user,
+      workspaces
+    };
   },
 
   async getMembership(userId: string, workspaceId: string) {
