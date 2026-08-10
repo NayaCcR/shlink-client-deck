@@ -50,11 +50,14 @@ import {
 } from "@/components/ui/table";
 import {
   useChangeHostedPassword,
+  useCreateHostedApiToken,
   useCreateHostedInvite,
   useDisableHostedInvite,
   useHostedInvites,
+  useHostedApiTokens,
   useHostedMembers,
   useRemoveHostedMember,
+  useRevokeHostedApiToken,
   useResetHostedMemberPassword,
   useUpdateHostedMemberRole
 } from "@/features/auth/hosted-hooks";
@@ -75,6 +78,7 @@ import {
   roleCanResetMemberPassword
 } from "@/lib/hosted/permissions";
 import type {
+  HostedApiToken,
   HostedInviteRole,
   HostedRole,
   HostedWorkspaceInvite,
@@ -483,6 +487,154 @@ function HostedPasswordPanel() {
           {t("settings.account.submit")}
         </Button>
       </form>
+    </section>
+  );
+}
+
+function getApiTokenStatus(token: HostedApiToken) {
+  if (token.revokedAt) return "revoked";
+  if (token.expiresAt && new Date(token.expiresAt).getTime() <= Date.now()) return "expired";
+  return "active";
+}
+
+function HostedApiTokensPanel() {
+  const { t, i18n } = useTranslation();
+  const tokensQuery = useHostedApiTokens();
+  const createToken = useCreateHostedApiToken();
+  const revokeToken = useRevokeHostedApiToken();
+  const [name, setName] = React.useState("");
+  const [expiresAt, setExpiresAt] = React.useState("");
+  const [createdToken, setCreatedToken] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const result = await createToken.mutateAsync({
+      name: name.trim(),
+      expiresAt: toDateTimeLocalValue(expiresAt)
+    });
+    setCreatedToken(result.token);
+    setName("");
+    setExpiresAt("");
+  };
+
+  const handleCopy = async () => {
+    if (!createdToken) return;
+    await navigator.clipboard?.writeText(createdToken).catch(() => undefined);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  const error = createToken.error || revokeToken.error;
+
+  return (
+    <section className="mt-5 rounded-lg border border-border bg-card p-5 shadow-sm">
+      <div className="mb-4 flex gap-3">
+        <KeyRound className="mt-0.5 h-5 w-5 text-muted-foreground" />
+        <div>
+          <h3 className="text-base font-semibold">{t("settings.apiTokens.title")}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            {t("settings.apiTokens.description")}
+          </p>
+        </div>
+      </div>
+
+      <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={(event) => void handleCreate(event)}>
+        <div className="space-y-2">
+          <Label htmlFor="api-token-name">{t("settings.apiTokens.name")}</Label>
+          <Input id="api-token-name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="api-token-expires">{t("settings.apiTokens.expiresAt")}</Label>
+          <Input id="api-token-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
+        </div>
+        <Button type="submit" disabled={!name.trim() || createToken.isPending}>
+          {createToken.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {t("settings.apiTokens.create")}
+        </Button>
+      </form>
+
+      {error ? (
+        <StatusCallout title={t("settings.apiTokens.failed")} tone="danger" className="mt-4">
+          {error.message}
+        </StatusCallout>
+      ) : null}
+
+      {createdToken ? (
+        <StatusCallout title={t("settings.apiTokens.createdTitle")} tone="success" className="mt-4">
+          <p>{t("settings.apiTokens.createdDescription")}</p>
+          <div className="mt-3 flex gap-2">
+            <Input readOnly value={createdToken} className="font-mono text-xs" />
+            <Button type="button" variant="outline" size="icon" title={t("settings.apiTokens.copy")} onClick={() => void handleCopy()}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          {copied ? <p className="mt-2 text-xs">{t("settings.apiTokens.copied")}</p> : null}
+        </StatusCallout>
+      ) : null}
+
+      <div className="mt-5">
+        {tokensQuery.isLoading ? (
+          <div className="flex min-h-[140px] items-center justify-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {t("settings.apiTokens.loading")}
+          </div>
+        ) : tokensQuery.isError ? (
+          <StatusCallout title={t("settings.apiTokens.loadFailed")} tone="danger">
+            {tokensQuery.error.message}
+          </StatusCallout>
+        ) : !tokensQuery.data?.tokens.length ? (
+          <EmptyState icon={KeyRound} title={t("settings.apiTokens.emptyTitle")} description={t("settings.apiTokens.emptyDescription")} className="min-h-[140px]" />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("settings.apiTokens.table.name")}</TableHead>
+                <TableHead>{t("settings.apiTokens.table.token")}</TableHead>
+                <TableHead>{t("settings.apiTokens.table.lastUsed")}</TableHead>
+                <TableHead>{t("settings.apiTokens.table.expires")}</TableHead>
+                <TableHead>{t("settings.apiTokens.table.status")}</TableHead>
+                <TableHead className="text-right">{t("settings.apiTokens.table.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tokensQuery.data.tokens.map((token) => {
+                const status = getApiTokenStatus(token);
+                return (
+                  <TableRow key={token.id}>
+                    <TableCell className="font-medium">{token.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{token.tokenPreview}</TableCell>
+                    <TableCell>{token.lastUsedAt ? formatDateTime(token.lastUsedAt, i18n.language) : t("settings.apiTokens.never")}</TableCell>
+                    <TableCell>{token.expiresAt ? formatDateTime(token.expiresAt, i18n.language) : t("settings.apiTokens.never")}</TableCell>
+                    <TableCell><Badge variant="outline">{t(`settings.apiTokens.status.${status}`)}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" title={t("settings.apiTokens.revoke")} disabled={status !== "active" || revokeToken.isPending}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t("settings.apiTokens.revokeTitle")}</AlertDialogTitle>
+                            <AlertDialogDescription>{t("settings.apiTokens.revokeDescription", { name: token.name })}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("settings.apiTokens.cancel")}</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => revokeToken.mutate(token.id)}>
+                              {t("settings.apiTokens.confirmRevoke")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </section>
   );
 }
@@ -909,6 +1061,7 @@ export function SettingsPage({
           <div className="mt-5">
             <HostedPasswordPanel />
           </div>
+          <HostedApiTokensPanel />
           <HostedMembersPanel
             workspaceId={workspaceId}
             workspaceRole={workspaceRole}

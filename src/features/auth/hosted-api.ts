@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  HostedApiToken,
   HostedInviteRole,
   HostedServer,
   HostedSession,
@@ -67,6 +68,11 @@ export type HostedInviteInput = {
 export type HostedPasswordChangeInput = {
   currentPassword: string;
   newPassword: string;
+};
+
+export type HostedApiTokenInput = {
+  name: string;
+  expiresAt?: string | null;
 };
 
 async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
@@ -137,6 +143,26 @@ export function changeHostedPassword(input: HostedPasswordChangeInput) {
     method: "POST",
     body: JSON.stringify(input)
   });
+}
+
+export function listHostedApiTokens() {
+  return apiRequest<{ tokens: HostedApiToken[] }>("/api/hosted/auth/tokens", {
+    method: "GET"
+  });
+}
+
+export function createHostedApiToken(input: HostedApiTokenInput) {
+  return apiRequest<{ token: string; record: HostedApiToken }>("/api/hosted/auth/tokens", {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+}
+
+export function revokeHostedApiToken(tokenId: string) {
+  return apiRequest<{ ok: true }>(
+    `/api/hosted/auth/tokens/${encodeURIComponent(tokenId)}`,
+    { method: "DELETE" }
+  );
 }
 
 export function listHostedServers(workspaceId?: string) {

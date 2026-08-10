@@ -380,6 +380,41 @@ export const resources = {
           passwordTooShort: "新密码至少需要 8 个字符。",
           passwordMismatch: "两次输入的新密码不一致。"
         },
+        apiTokens: {
+          title: "API Token",
+          description: "为第三方程序创建个人访问令牌。令牌继承当前账号的工作区权限，服务端只保存哈希。",
+          name: "Token 名称",
+          expiresAt: "过期时间（可选）",
+          create: "创建 Token",
+          createdTitle: "Token 已创建",
+          createdDescription: "完整 Token 只会显示一次，请立即复制并妥善保存。",
+          copy: "复制 Token",
+          copied: "已复制",
+          failed: "Token 操作失败",
+          loading: "正在加载 Token",
+          loadFailed: "无法加载 Token",
+          emptyTitle: "还没有 API Token",
+          emptyDescription: "创建 Token 后，第三方程序可通过 Authorization: Bearer 调用 Hosted API。",
+          never: "从未 / 永不过期",
+          revoke: "撤销 Token",
+          revokeTitle: "撤销 API Token？",
+          revokeDescription: "撤销 {{name}} 后，使用该 Token 的程序会立即失去访问权限。",
+          cancel: "取消",
+          confirmRevoke: "确认撤销",
+          status: {
+            active: "有效",
+            expired: "已过期",
+            revoked: "已撤销"
+          },
+          table: {
+            name: "名称",
+            token: "Token 预览",
+            lastUsed: "最后使用",
+            expires: "过期时间",
+            status: "状态",
+            actions: "操作"
+          }
+        },
         members: {
           title: "成员管理",
           description: "管理当前工作区成员和角色。最高权限账户可管理管理员与普通成员，管理员只能管理成员 / 只读。",
@@ -882,6 +917,41 @@ export const resources = {
           savedDescription: "Use the new password the next time you sign in.",
           passwordTooShort: "The new password must be at least 8 characters.",
           passwordMismatch: "The new passwords do not match."
+        },
+        apiTokens: {
+          title: "API tokens",
+          description: "Create personal access tokens for integrations. Tokens inherit your workspace permissions and are stored only as hashes.",
+          name: "Token name",
+          expiresAt: "Expires at (optional)",
+          create: "Create token",
+          createdTitle: "Token created",
+          createdDescription: "The full token is shown only once. Copy and store it now.",
+          copy: "Copy token",
+          copied: "Copied",
+          failed: "Token action failed",
+          loading: "Loading tokens",
+          loadFailed: "Could not load tokens",
+          emptyTitle: "No API tokens",
+          emptyDescription: "Create a token to call Hosted APIs with an Authorization: Bearer header.",
+          never: "Never",
+          revoke: "Revoke token",
+          revokeTitle: "Revoke API token?",
+          revokeDescription: "Programs using {{name}} will immediately lose access.",
+          cancel: "Cancel",
+          confirmRevoke: "Revoke token",
+          status: {
+            active: "Active",
+            expired: "Expired",
+            revoked: "Revoked"
+          },
+          table: {
+            name: "Name",
+            token: "Token preview",
+            lastUsed: "Last used",
+            expires: "Expires",
+            status: "Status",
+            actions: "Actions"
+          }
         },
         members: {
           title: "Members",

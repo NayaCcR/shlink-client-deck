@@ -4,24 +4,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   changeHostedPassword,
+  createHostedApiToken,
   createHostedInvite,
   createHostedServer,
   deleteHostedServer,
   disableHostedInvite,
   getHostedSession,
   listHostedInvites,
+  listHostedApiTokens,
   listHostedMembers,
   listHostedServers,
   loginHostedAccount,
   logoutHostedAccount,
   registerHostedAccount,
   removeHostedMember,
+  revokeHostedApiToken,
   resetHostedMemberPassword,
   testHostedServerConnection,
   toHostedShlinkServer,
   updateHostedMemberRole,
   updateHostedServer,
   type HostedInviteInput,
+  type HostedApiTokenInput,
   type HostedPasswordChangeInput,
   type HostedServerInput,
   type HostedServerUpdateInput
@@ -37,6 +41,7 @@ export const hostedInvitesKey = (workspaceId?: string | null) =>
   ["hosted", "invites", workspaceId ?? "default"] as const;
 export const hostedMembersKey = (workspaceId?: string | null) =>
   ["hosted", "members", workspaceId ?? "default"] as const;
+export const hostedApiTokensKey = ["hosted", "api-tokens"] as const;
 
 export function useHostedSession() {
   return useQuery({
@@ -129,6 +134,36 @@ export function useDisableHostedInvite(workspaceId?: string | null) {
 export function useChangeHostedPassword() {
   return useMutation({
     mutationFn: (input: HostedPasswordChangeInput) => changeHostedPassword(input)
+  });
+}
+
+export function useHostedApiTokens() {
+  return useQuery({
+    queryKey: hostedApiTokensKey,
+    queryFn: listHostedApiTokens,
+    enabled: isHostedAppMode(),
+    staleTime: 30_000,
+    retry: false
+  });
+}
+
+export function useCreateHostedApiToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: HostedApiTokenInput) => createHostedApiToken(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedApiTokensKey });
+    }
+  });
+}
+
+export function useRevokeHostedApiToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: revokeHostedApiToken,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: hostedApiTokensKey });
+    }
   });
 }
 
