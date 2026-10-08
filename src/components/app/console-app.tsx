@@ -14,6 +14,9 @@ import type { HostedRole } from "@/lib/hosted/types";
 
 type ConsoleAppProps = {
   mode?: "static" | "hosted";
+  /** 受控的当前段；不传时退回组件内部 state。 */
+  section?: AppView;
+  onSectionChange?: (view: AppView) => void;
   workspaceId?: string | null;
   workspaceRole?: HostedRole | null;
   currentUserId?: string | null;
@@ -21,13 +24,18 @@ type ConsoleAppProps = {
 
 export function ConsoleApp({
   mode = "static",
+  section,
+  onSectionChange,
   workspaceId,
   workspaceRole,
   currentUserId
 }: ConsoleAppProps) {
   const currentServer = useCurrentServer();
-  const [activeView, setActiveView] = React.useState<AppView>("overview");
+  const [internalView, setInternalView] = React.useState<AppView>("overview");
   const [globalSearch, setGlobalSearch] = React.useState("");
+
+  const activeView = section ?? internalView;
+  const setActiveView = onSectionChange ?? setInternalView;
 
   return (
     <AppShell

@@ -413,6 +413,21 @@ export const resources = {
             expires: "过期时间",
             status: "状态",
             actions: "操作"
+          },
+          restrict: {
+            title: "调用限制",
+            hint: "留空的项表示不限制。限制全部在服务端校验，填写后该 Token 只能从允许的来源调用。",
+            servers: "允许访问的后端（可多选）",
+            serversAll: "全部后端",
+            serversCount: "已选 {{count}} 个后端",
+            noServers: "当前工作区还没有后端",
+            origins: "允许的域名",
+            originsPlaceholder: "sub.31n.cc, *.example.com",
+            ips: "允许的 IP / CIDR",
+            ipsPlaceholder: "1.2.3.4, 10.0.0.0/8",
+            countries: "允许的地区",
+            countriesPlaceholder: "CN, HK",
+            summaryNone: "无限制"
           }
         },
         members: {
@@ -951,6 +966,21 @@ export const resources = {
             expires: "Expires",
             status: "Status",
             actions: "Actions"
+          },
+          restrict: {
+            title: "Access restrictions",
+            hint: "Leave a field empty for no restriction. Every restriction is enforced on the server, so a restricted token only works from the allowed sources.",
+            servers: "Allowed servers (multi-select)",
+            serversAll: "All servers",
+            serversCount: "{{count}} server(s) selected",
+            noServers: "This workspace has no servers yet",
+            origins: "Allowed origins",
+            originsPlaceholder: "sub.31n.cc, *.example.com",
+            ips: "Allowed IPs / CIDR",
+            ipsPlaceholder: "1.2.3.4, 10.0.0.0/8",
+            countries: "Allowed regions",
+            countriesPlaceholder: "CN, HK",
+            summaryNone: "Unrestricted"
           }
         },
         members: {

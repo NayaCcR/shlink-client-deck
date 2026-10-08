@@ -23,6 +23,7 @@ import type {
   HostedInviteRole,
   HostedServerRecord,
   HostedApiTokenRecord,
+  HostedApiTokenRestrictions,
   HostedShortUrlProtectionRecord,
   HostedShortUrlRecord,
   HostedSessionRecord,
@@ -515,6 +516,7 @@ export const hostedStore = {
     tokenHash: string;
     tokenPreview: string;
     expiresAt?: string | null;
+    restrictions?: HostedApiTokenRestrictions | null;
   }) {
     return updateData((data) => {
       const timestamp = nowIso();
@@ -528,7 +530,8 @@ export const hostedStore = {
         updatedAt: timestamp,
         lastUsedAt: null,
         expiresAt: input.expiresAt ?? null,
-        revokedAt: null
+        revokedAt: null,
+        restrictions: input.restrictions ?? undefined
       };
       data.apiTokens.push(token);
       return token;
@@ -642,6 +645,51 @@ export const hostedStore = {
   async getServerForUser(userId: string, serverId: string) {
     const data = await readData();
     const server = data.servers.find((item) => item.id === serverId);
+    if (!server) {
+      return null;
+    }
+
+    const member = data.workspaceMembers.find(
+      (item) => item.userId === userId && item.workspaceId === server.workspaceId
+    );
+    if (!member) {
+      return null;
+    }
+
+    return { server, member };
+  },
+
+  /**
+   * 解析后端标识。"default" / "auto" 表示该用户可访问的第一个后端，
+   * 其余按真实 serverId 处理。用于 /api/default/... 这类不带 serverId 的调用。
+   */
+  async resolveServerForUser(
+    userId: string,
+    serverIdOrAlias: string,
+    preferredServerIds?: string[]
+  ) {
+    const alias = (serverIdOrAlias || "").trim().toLowerCase();
+    if (alias !== "default" && alias !== "auto") {
+      return this.getServerForUser(userId, serverIdOrAlias);
+    }
+
+    // 别名场景下，优先使用 token 绑定的后端（多选时取第一个可访问的）。
+    for (const preferredId of preferredServerIds ?? []) {
+      const preferred = await this.getServerForUser(userId, preferredId);
+      if (preferred) {
+        return preferred;
+      }
+    }
+
+    const data = await readData();
+    const workspaceIds = new Set(
+      data.workspaceMembers
+        .filter((item) => item.userId === userId)
+        .map((item) => item.workspaceId)
+    );
+    const server = data.servers
+      .filter((item) => workspaceIds.has(item.workspaceId))
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))[0];
     if (!server) {
       return null;
     }

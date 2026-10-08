@@ -2,6 +2,7 @@ import { ZodError } from "zod";
 
 import { requireHostedSession } from "@/lib/hosted/auth";
 import { createToken, hashToken } from "@/lib/hosted/crypto";
+import { normalizeTokenRestrictions } from "@/lib/hosted/request-limits";
 import { apiError, noStoreJson, readJson, validationError } from "@/lib/hosted/responses";
 import { hostedApiTokenCreateSchema } from "@/lib/hosted/schemas";
 import { hostedStore } from "@/lib/hosted/store";
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
       name: input.name,
       tokenHash: hashToken(token),
       tokenPreview: previewToken(token),
-      expiresAt: input.expiresAt ?? null
+      expiresAt: input.expiresAt ?? null,
+      restrictions: normalizeTokenRestrictions(input)
     });
 
     return noStoreJson({ token, record: publicToken(record) }, { status: 201 });

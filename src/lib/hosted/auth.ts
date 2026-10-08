@@ -5,7 +5,12 @@ import { createToken, hashToken } from "@/lib/hosted/crypto";
 import { isHostedModeEnabled } from "@/lib/hosted/env";
 import { apiError } from "@/lib/hosted/responses";
 import { hostedStore } from "@/lib/hosted/store";
-import type { HostedSession, HostedUser, HostedWorkspace } from "@/lib/hosted/types";
+import type {
+  HostedApiTokenRecord,
+  HostedSession,
+  HostedUser,
+  HostedWorkspace
+} from "@/lib/hosted/types";
 
 const SESSION_COOKIE = "link_console_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
@@ -80,7 +85,12 @@ export async function getSessionToken() {
   return cookieStore.get(SESSION_COOKIE)?.value ?? null;
 }
 
-export async function getHostedSession() {
+/** 会话上下文；通过 Bearer Token 调用时额外带上 token 记录，用于读取调用限制。 */
+export type HostedAuthContext = HostedSession & {
+  apiToken: HostedApiTokenRecord | null;
+};
+
+export async function getHostedSession(): Promise<HostedAuthContext | null> {
   const requestHeaders = await headers();
   const authorization = requestHeaders.get("authorization");
   const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
@@ -89,18 +99,19 @@ export async function getHostedSession() {
     return null;
   }
 
-  const session = bearer
-    ? await hostedStore.getApiToken(hashToken(token)).then(async (apiToken) => {
-        if (!apiToken) return null;
-        await hostedStore.markApiTokenUsed(apiToken.id);
-        return hostedStore.getSessionForUser(apiToken.userId);
-      })
-    : await hostedStore.getSession(hashToken(token));
-  if (!session) {
-    return null;
+  if (bearer) {
+    const apiToken = await hostedStore.getApiToken(hashToken(token));
+    if (!apiToken) {
+      return null;
+    }
+
+    await hostedStore.markApiTokenUsed(apiToken.id);
+    const session = await hostedStore.getSessionForUser(apiToken.userId);
+    return session ? { ...session, apiToken } : null;
   }
 
-  return session;
+  const session = await hostedStore.getSession(hashToken(token));
+  return session ? { ...session, apiToken: null } : null;
 }
 
 export async function requireHostedSession() {

@@ -89,8 +89,16 @@ export const hostedMemberUpdateSchema = z.object({
   role: z.enum(["admin", "member", "viewer"])
 });
 
+const hostedRestrictionList = <T extends z.ZodTypeAny>(item: T) => z.array(item).max(50).optional();
+
 export const hostedApiTokenCreateSchema = z.object({
   name: z.string().trim().min(1).max(80),
+  serverIds: hostedRestrictionList(z.string().trim().min(1).max(100)),
+  allowedOrigins: hostedRestrictionList(z.string().trim().min(1).max(200)),
+  allowedIps: hostedRestrictionList(z.string().trim().min(1).max(100)),
+  allowedCountries: hostedRestrictionList(
+    z.string().trim().length(2).transform((value) => value.toUpperCase())
+  ),
   expiresAt: z
     .string()
     .datetime()

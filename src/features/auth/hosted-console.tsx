@@ -5,6 +5,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { ConsoleApp } from "@/components/app/console-app";
+import { useConsoleSection } from "@/features/console/console-url";
 import { HostedAuthPage } from "@/features/auth/hosted-auth-page";
 import { useHostedServers, useHostedSession } from "@/features/auth/hosted-hooks";
 import { ServerOnboarding } from "@/features/servers/server-onboarding";
@@ -38,6 +39,10 @@ export function HostedConsole() {
     }
   }, [serversQuery.data?.servers, syncHostedServers]);
 
+  const { section, onSectionChange } = useConsoleSection(
+    Boolean(session) && !serversQuery.isLoading && servers.length > 0
+  );
+
   if (sessionQuery.isLoading) {
     return <HostedLoading />;
   }
@@ -57,6 +62,8 @@ export function HostedConsole() {
   return (
     <ConsoleApp
       mode="hosted"
+      section={section}
+      onSectionChange={onSectionChange}
       workspaceId={workspaceId}
       workspaceRole={workspace?.role}
       currentUserId={session.user.id}

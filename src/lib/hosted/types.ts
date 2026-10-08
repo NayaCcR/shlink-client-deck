@@ -90,6 +90,17 @@ export type HostedSessionRecord = {
   createdAt: string;
 };
 
+/**
+ * Token 的调用限制。每个列表为空数组时表示「不限制」。
+ * serverIds 支持多选，因此一个 token 可以同时操作多个后端。
+ */
+export type HostedApiTokenRestrictions = {
+  serverIds: string[];
+  allowedOrigins: string[];
+  allowedIps: string[];
+  allowedCountries: string[];
+};
+
 export type HostedApiTokenRecord = {
   id: string;
   userId: string;
@@ -101,6 +112,8 @@ export type HostedApiTokenRecord = {
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
+  /** 旧记录没有该字段，读取时按「无限制」处理。 */
+  restrictions?: HostedApiTokenRestrictions | null;
 };
 
 export type HostedStoreData = {

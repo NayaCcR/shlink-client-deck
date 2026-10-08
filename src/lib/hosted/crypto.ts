@@ -7,7 +7,11 @@ import {
   timingSafeEqual
 } from "crypto";
 
-import { getCredentialSecret, getSessionSecret } from "@/lib/hosted/env";
+import {
+  getCredentialSecret,
+  getLegacyCredentialSecrets,
+  getSessionSecret
+} from "@/lib/hosted/env";
 import { maskSecret } from "@/lib/utils";
 
 const PASSWORD_ITERATIONS = 210_000;
@@ -84,13 +88,14 @@ export function encryptSecret(value: string) {
   ].join(":");
 }
 
-export function decryptSecret(value: string) {
-  const [version, saltValue, ivValue, tagValue, encryptedValue] = value.split(":");
-  if (version !== "v1" || !saltValue || !ivValue || !tagValue || !encryptedValue) {
-    throw new Error("Invalid encrypted credential payload.");
-  }
-
-  const key = deriveKey(getCredentialSecret(), Buffer.from(saltValue, "base64"));
+function decipherWith(
+  secret: string,
+  saltValue: string,
+  ivValue: string,
+  tagValue: string,
+  encryptedValue: string
+) {
+  const key = deriveKey(secret, Buffer.from(saltValue, "base64"));
   const decipher = createDecipheriv(
     ENCRYPTION_ALGORITHM,
     key,
@@ -102,6 +107,27 @@ export function decryptSecret(value: string) {
     decipher.update(Buffer.from(encryptedValue, "base64")),
     decipher.final()
   ]).toString("utf8");
+}
+
+export function decryptSecret(value: string) {
+  const [version, saltValue, ivValue, tagValue, encryptedValue] = value.split(":");
+  if (version !== "v1" || !saltValue || !ivValue || !tagValue || !encryptedValue) {
+    throw new Error("Invalid encrypted credential payload.");
+  }
+
+  // 主密钥解不开时，依次尝试密钥轮换时登记的历史密钥，避免旧数据直接失效。
+  let lastError: unknown = null;
+  for (const secret of [getCredentialSecret(), ...getLegacyCredentialSecrets()]) {
+    try {
+      return decipherWith(secret, saltValue, ivValue, tagValue, encryptedValue);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Could not decrypt credential payload.");
 }
 
 export function previewSecret(value: string) {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   Copy,
   Database,
   ExternalLink,
@@ -35,6 +36,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +64,7 @@ import {
   useHostedInvites,
   useHostedApiTokens,
   useHostedMembers,
+  useHostedServers,
   useRemoveHostedMember,
   useRevokeHostedApiToken,
   useResetHostedMemberPassword,
@@ -497,26 +506,78 @@ function getApiTokenStatus(token: HostedApiToken) {
   return "active";
 }
 
-function HostedApiTokensPanel() {
+/** 逗号 / 空格 / 换行分隔的输入，统一拆成去重后的数组。 */
+function splitList(value: string) {
+  return [...new Set(value.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean))];
+}
+
+function describeTokenRestrictions(
+  token: HostedApiToken,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const restrictions = token.restrictions;
+  if (!restrictions) {
+    return t("settings.apiTokens.restrict.summaryNone");
+  }
+
+  const parts: string[] = [];
+  const label = (key: string) => t("settings.apiTokens.restrict." + key);
+  if (restrictions.serverIds?.length) parts.push(label("servers") + " " + restrictions.serverIds.length);
+  if (restrictions.allowedOrigins?.length) parts.push(label("origins") + " " + restrictions.allowedOrigins.join(", "));
+  if (restrictions.allowedIps?.length) parts.push(label("ips") + " " + restrictions.allowedIps.join(", "));
+  if (restrictions.allowedCountries?.length) parts.push(label("countries") + " " + restrictions.allowedCountries.join("/"));
+
+  return parts.length > 0 ? parts.join(" · ") : t("settings.apiTokens.restrict.summaryNone");
+}
+
+function HostedApiTokensPanel({ workspaceId }: { workspaceId?: string | null }) {
   const { t, i18n } = useTranslation();
   const tokensQuery = useHostedApiTokens();
+  const serversQuery = useHostedServers(workspaceId ?? null);
   const createToken = useCreateHostedApiToken();
   const revokeToken = useRevokeHostedApiToken();
   const [name, setName] = React.useState("");
   const [expiresAt, setExpiresAt] = React.useState("");
+  const [serverIds, setServerIds] = React.useState<string[]>([]);
+  const [allowedOrigins, setAllowedOrigins] = React.useState("");
+  const [allowedIps, setAllowedIps] = React.useState("");
+  const [allowedCountries, setAllowedCountries] = React.useState("");
   const [createdToken, setCreatedToken] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+
+  const servers = serversQuery.data?.servers ?? [];
+
+  const toggleServer = (serverId: string, checked: boolean) => {
+    setServerIds((current) =>
+      checked
+        ? [...new Set([...current, serverId])]
+        : current.filter((item) => item !== serverId)
+    );
+  };
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const result = await createToken.mutateAsync({
       name: name.trim(),
-      expiresAt: toDateTimeLocalValue(expiresAt)
+      expiresAt: toDateTimeLocalValue(expiresAt),
+      serverIds,
+      allowedOrigins: splitList(allowedOrigins),
+      allowedIps: splitList(allowedIps),
+      allowedCountries: splitList(allowedCountries)
     });
     setCreatedToken(result.token);
     setName("");
     setExpiresAt("");
+    setServerIds([]);
+    setAllowedOrigins("");
+    setAllowedIps("");
+    setAllowedCountries("");
   };
+
+  const serverSummary =
+    serverIds.length === 0
+      ? t("settings.apiTokens.restrict.serversAll")
+      : t("settings.apiTokens.restrict.serversCount", { count: serverIds.length });
 
   const handleCopy = async () => {
     if (!createdToken) return;
@@ -539,19 +600,93 @@ function HostedApiTokensPanel() {
         </div>
       </div>
 
-      <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={(event) => void handleCreate(event)}>
-        <div className="space-y-2">
-          <Label htmlFor="api-token-name">{t("settings.apiTokens.name")}</Label>
-          <Input id="api-token-name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
+      <form className="space-y-4" onSubmit={(event) => void handleCreate(event)}>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+          <div className="space-y-2">
+            <Label htmlFor="api-token-name">{t("settings.apiTokens.name")}</Label>
+            <Input id="api-token-name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="api-token-expires">{t("settings.apiTokens.expiresAt")}</Label>
+            <Input id="api-token-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
+          </div>
+          <Button type="submit" disabled={!name.trim() || createToken.isPending}>
+            {createToken.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {t("settings.apiTokens.create")}
+          </Button>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="api-token-expires">{t("settings.apiTokens.expiresAt")}</Label>
-          <Input id="api-token-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
+
+        <div className="rounded-md border border-dashed border-border p-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium">{t("settings.apiTokens.restrict.title")}</p>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {t("settings.apiTokens.restrict.hint")}
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("settings.apiTokens.restrict.servers")}</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                    <span className="truncate">{serverSummary}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="max-h-72 overflow-y-auto"
+                  style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
+                >
+                  {servers.length === 0 ? (
+                    <DropdownMenuItem disabled>
+                      {t("settings.apiTokens.restrict.noServers")}
+                    </DropdownMenuItem>
+                  ) : (
+                    servers.map((server) => (
+                      <DropdownMenuCheckboxItem
+                        key={server.id}
+                        checked={serverIds.includes(server.id)}
+                        onSelect={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) => toggleServer(server.id, checked === true)}
+                      >
+                        {server.name}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-token-origins">{t("settings.apiTokens.restrict.origins")}</Label>
+              <Input
+                id="api-token-origins"
+                value={allowedOrigins}
+                placeholder={t("settings.apiTokens.restrict.originsPlaceholder")}
+                onChange={(event) => setAllowedOrigins(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-token-ips">{t("settings.apiTokens.restrict.ips")}</Label>
+              <Input
+                id="api-token-ips"
+                value={allowedIps}
+                placeholder={t("settings.apiTokens.restrict.ipsPlaceholder")}
+                onChange={(event) => setAllowedIps(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-token-countries">{t("settings.apiTokens.restrict.countries")}</Label>
+              <Input
+                id="api-token-countries"
+                value={allowedCountries}
+                placeholder={t("settings.apiTokens.restrict.countriesPlaceholder")}
+                onChange={(event) => setAllowedCountries(event.target.value)}
+              />
+            </div>
+          </div>
         </div>
-        <Button type="submit" disabled={!name.trim() || createToken.isPending}>
-          {createToken.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          {t("settings.apiTokens.create")}
-        </Button>
       </form>
 
       {error ? (
@@ -602,7 +737,12 @@ function HostedApiTokensPanel() {
                 const status = getApiTokenStatus(token);
                 return (
                   <TableRow key={token.id}>
-                    <TableCell className="font-medium">{token.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{token.name}</div>
+                      <div className="mt-0.5 text-xs font-normal text-muted-foreground">
+                        {describeTokenRestrictions(token, t)}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{token.tokenPreview}</TableCell>
                     <TableCell>{token.lastUsedAt ? formatDateTime(token.lastUsedAt, i18n.language) : t("settings.apiTokens.never")}</TableCell>
                     <TableCell>{token.expiresAt ? formatDateTime(token.expiresAt, i18n.language) : t("settings.apiTokens.never")}</TableCell>
@@ -1061,7 +1201,7 @@ export function SettingsPage({
           <div className="mt-5">
             <HostedPasswordPanel />
           </div>
-          <HostedApiTokensPanel />
+          <HostedApiTokensPanel workspaceId={workspaceId} />
           <HostedMembersPanel
             workspaceId={workspaceId}
             workspaceRole={workspaceRole}

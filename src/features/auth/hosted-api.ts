@@ -73,6 +73,14 @@ export type HostedPasswordChangeInput = {
 export type HostedApiTokenInput = {
   name: string;
   expiresAt?: string | null;
+  /** 允许访问的后端；空数组表示不限制。 */
+  serverIds?: string[];
+  /** 允许的调用来源，如 `*.31n.cc`；空数组表示不限制。 */
+  allowedOrigins?: string[];
+  /** 允许的客户端 IP 或 CIDR；空数组表示不限制。 */
+  allowedIps?: string[];
+  /** 允许的地区（两位国家码）；空数组表示不限制。 */
+  allowedCountries?: string[];
 };
 
 async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {

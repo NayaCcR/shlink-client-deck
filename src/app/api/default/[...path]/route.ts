@@ -1,16 +1,17 @@
 import { proxyShlinkPath } from "@/lib/hosted/shlink-proxy";
 
+const DEFAULT_SERVER_ALIAS = "default";
+
 export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{
-    serverId: string;
     path: string[];
   }>;
 };
 
 function handle(request: Request, context: RouteContext) {
-  return context.params.then(({ serverId, path }) => proxyShlinkPath(request, serverId, path));
+  return context.params.then(({ path }) => proxyShlinkPath(request, DEFAULT_SERVER_ALIAS, path));
 }
 
 export function GET(request: Request, context: RouteContext) {
