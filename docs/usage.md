@@ -1,5 +1,10 @@
 # 使用指南
 
+两种模式的操作方式一致，区别只在数据放在哪一侧：
+
+- **Hosted Mode（推荐）**：需要服务端运行。账号、工作区、加密后的 Shlink API Key，以及短链的归属与访问记录都保存在服务端，浏览器不会接触到 API Key。
+- **Static Mode**：不需要任何服务端。配置与 API Key 只存在访问者自己的 `localStorage` 里，适合个人自用和可信环境。
+
 ## Static Mode
 
 Static Mode 是纯前端模式。首次打开后，在服务器设置中填写名称、Shlink API 地址（例如 `https://go.example.com`）和 API Key，点击测试连接并保存。配置保存在当前浏览器 `localStorage`，可添加多个服务器并在顶部切换。

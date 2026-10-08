@@ -2,8 +2,8 @@
 
 Link Console has two run modes:
 
-- Static Mode: pure frontend assets. The browser stores Shlink server configs and API keys locally.
-- Hosted Mode: Next.js server runtime with accounts, workspaces, encrypted Shlink credentials, protected links, and configurable storage.
+- **Hosted Mode (recommended)**: Next.js server runtime with accounts, workspaces, encrypted Shlink credentials, protected links, configurable storage, and server-side short URL ownership and usage records.
+- Static Mode: pure frontend assets, no server runtime. The browser stores Shlink server configs and API keys locally.
 
 ## Requirements
 

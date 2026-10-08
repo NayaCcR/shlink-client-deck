@@ -12,7 +12,7 @@ Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会�
 | `POST` | `/api/hosted/auth/logout` | 删除当前会话。 |
 | `POST` | `/api/hosted/auth/password` | 修改密码：`currentPassword`、`newPassword`（至少 8 位）。 |
 | `GET` | `/api/hosted/auth/tokens` | 列出当前用户的 Token 元数据，不返回 Token 明文。 |
-| `POST` | `/api/hosted/auth/tokens` | 创建 Token。body：`name`，可选未来时间 `expiresAt`（ISO 8601）。明文仅在创建响应中返回一次。 |
+| `POST` | `/api/hosted/auth/tokens` | 创建 Token。body：`name`，可选未来时间 `expiresAt`（ISO 8601），以及可选的调用限制 `serverIds`、`allowedOrigins`、`allowedIps`、`allowedCountries`（见「调用限制」）。明文仅在创建响应中返回一次。 |
 | `DELETE` | `/api/hosted/auth/tokens/<tokenId>` | 撤销当前用户自己的 Token。 |
 
 ## 服务器
@@ -36,7 +36,24 @@ Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会�
 
 ## Shlink 代理
 
-`/api/hosted/shlink/<serverId>/<path...>` 支持 `GET`、`POST`、`PATCH`、`DELETE`，将请求转发到已保存服务器的 `/rest/v3/<path>`，并由服务端注入 `X-Api-Key`。常用路径包括 `health`、`short-urls`、`short-urls/<code>`、`short-urls/<code>/visits`、`visits/non-orphan`、`tags` 和 `tags/<tag>/visits`。普通成员只能访问自己可见的短链和统计，workspace admin 可访问全局资源。
+`/api/default/<path...>` 是推荐的调用入口，支持 `GET`、`POST`、`PATCH`、`DELETE`，将请求转发到 `/rest/v3/<path>`，并由服务端注入 `X-Api-Key`。后端由 Token 绑定决定：`default`（`auto` 等价）解析为该 Token 绑定的第一个后端，未绑定时取账号下第一个可访问的后端。
+
+`/api/hosted/shlink/<serverId>/<path...>` 是等价的兼容别名，用于显式指定后端，行为完全一致。
+
+常用路径包括 `health`、`short-urls`、`short-urls/<code>`、`short-urls/<code>/visits`、`visits/non-orphan`、`tags` 和 `tags/<tag>/visits`。普通成员只能访问自己可见的短链和统计，workspace admin 可访问全局资源。
+
+### 调用限制
+
+创建 Token 时可以附带下列限制。留空（空数组或省略）表示不限制；所有限制都在服务端校验，不满足返回 `403`。
+
+| 字段 | 说明 |
+| --- | --- |
+| `serverIds` | 允许访问的后端，支持多选。 |
+| `allowedOrigins` | 允许的调用来源。可写完整来源 `https://sub.31n.cc`、主机名 `sub.31n.cc`（含子域），或通配 `*.31n.cc`（仅子域）。 |
+| `allowedIps` | 允许的客户端 IP。支持精确匹配与 CIDR，IPv4 与 IPv6 均可，例如 `10.0.0.0/8`、`2001:470::/32`。 |
+| `allowedCountries` | 允许的地区，两位国家码，取自 Cloudflare 的 `CF-IPCountry`。 |
+
+客户端来源按 `CF-Connecting-IP` → `X-Real-IP` → `X-Forwarded-For` 的顺序识别。因此该接口应部署在 Cloudflare 或等价的可信反向代理之后，并在 nginx 启用 real_ip 模块，否则 IP 与地区限制会拿不到真实值而一律拒绝。
 
 ### Bearer Token 调用
 
@@ -52,7 +69,7 @@ Token 与浏览器会话使用同一套用户和工作区权限。服务端只�
 curl -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"longUrl":"https://example.com","domain":"u.31n.cc"}' \
-  https://link.31n.cc/api/hosted/shlink/<serverId>/short-urls
+  https://link.31n.cc/api/default/short-urls
 ```
 
 创建受保护短链时，在普通 Shlink JSON 外附加：

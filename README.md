@@ -6,7 +6,7 @@ Link Console 是一个现代化、中文优先、可开源自部署的第三方 
 
 完整文档见 [`docs/`](./docs/README.md)，包括[使用指南](./docs/usage.md)、[开发指南](./docs/development.md)、[部署指南](./docs/deployment.md)和 [API 参考](./docs/api.md)。
 
-项目同时支持两种运行方式：Static Mode 适合纯前端静态部署，用户在浏览器本地保存自己的 Shlink Server 和 API Key；Hosted Mode 适合团队使用，提供注册登录、工作区、邀请码、成员权限、服务端加密保存 Shlink 凭证和后端代理请求。Link Console 自身只是管理面板，预发布域名 `link.31n.cc` 不是默认 Shlink API 地址，所有 Shlink 服务都来自用户或管理员配置。
+项目同时支持两种运行方式。**Hosted Mode** 是推荐方式：提供注册登录、工作区、邀请码、成员权限、服务端加密保存 Shlink 凭证和后端代理请求，短链的创建与访问记录集中在服务端。**Static Mode** 是纯前端静态部署，不需要任何服务端，用户在浏览器本地保存自己的 Shlink Server 和 API Key，功能完整。Link Console 自身只是管理面板，预发布域名 `link.31n.cc` 不是默认 Shlink API 地址，所有 Shlink 服务都来自用户或管理员配置。
 
 预发布面板域名：<https://link.31n.cc>
 
@@ -14,9 +14,11 @@ Link Console 是一个现代化、中文优先、可开源自部署的第三方 
 
 ## 发布模式
 
-公开站建议使用 Static Mode：它只是一个纯前端控制台，用户在自己的浏览器里保存 Shlink Server 和 API Key。
+Hosted Mode 是推荐方式：短链的归属与使用数据集中在服务端，Shlink API Key 只在后端加密保存，访问者的浏览器不会接触到它。
 
-Hosted Mode 是自部署/私有部署模式，需要 Next.js 服务端运行时和数据存储。Static Mode 不能原地切换成 Hosted Mode；如果你另行部署了 Hosted 实例，可以在 `public/config.json` 里配置入口：
+Static Mode 同样是完整可用的模式，只是把数据留在浏览器侧：不需要任何服务端，配置和 API Key 只存在访问者自己的 `localStorage` 里，适合个人自用和可信环境。两种模式的功能与部署差异见下文。
+
+Hosted Mode 需要 Next.js 服务端运行时和数据存储。Static Mode 不能原地切换成 Hosted Mode；如果你另行部署了 Hosted 实例，可以在 `public/config.json` 里配置入口：
 
 ```json
 {
@@ -30,8 +32,8 @@ Hosted Mode 是自部署/私有部署模式，需要 Next.js 服务端运行时�
 ## 项目定位
 
 - 第三方 Shlink Web Client，不替代 Shlink 后端。
-- 支持 Static Mode：纯前端静态部署，浏览器直接请求用户配置的 Shlink API。
-- 支持 Hosted Mode：注册、登录、工作区、服务端加密保存 Shlink 凭证、后端代理请求。
+- 支持 Hosted Mode（推荐）：注册、登录、工作区、服务端加密保存 Shlink 凭证、后端代理请求，并记录短链归属与访问数据。
+- 支持 Static Mode：纯前端静态部署，浏览器直接请求用户配置的 Shlink API，不需要任何服务端。
 - 中文优先，同时保留英文界面和 i18n 扩展点。
 - 面向开源自部署，不绑定某个固定短链服务。
 
@@ -48,7 +50,7 @@ Hosted Mode 是自部署/私有部署模式，需要 Next.js 服务端运行时�
 
 ## Static Mode
 
-Static Mode 是默认模式，适合个人自用、可信设备和可信网络环境。
+Static Mode 不需要任何服务端，适合个人自用、可信设备和可信网络环境。
 
 - 纯前端，可部署到 Nginx、Vercel、Cloudflare Pages 或任意静态托管。
 - 用户首次进入后手动添加服务器名称、Shlink API 地址和 API Key。
@@ -61,7 +63,7 @@ Static Mode 是默认模式，适合个人自用、可信设备和可信网络�
 
 ## Hosted Mode
 
-Hosted Mode 是可运行的首版后端模式，适合需要账号登录、集中保存凭证、避免浏览器直接接触 Shlink API Key 的自托管场景。
+Hosted Mode 适合需要账号登录、集中保存凭证、记录短链归属与使用数据、避免浏览器直接接触 Shlink API Key 的自托管场景。
 
 当前已实现：
 
