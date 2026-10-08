@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { StatusCallout } from "@/components/ui/status-callout";
 import { ModeSwitcher } from "@/components/app/mode-switcher";
 import { ThemeLanguageControls } from "@/components/app/app-shell";
+import { useAuthRoute } from "@/features/auth/auth-url";
 import { useHostedLogin, useHostedRegister } from "@/features/auth/hosted-hooks";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,8 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export function HostedAuthPage() {
   const { t } = useTranslation();
-  const [mode, setMode] = React.useState<"login" | "register">("login");
+  // 当前是登录还是注册，以地址栏的 /?login、/?register 为准。
+  const { view, inviteCode, setView } = useAuthRoute();
   const [registerMode, setRegisterMode] = React.useState<"workspace" | "invite">("workspace");
   const login = useHostedLogin();
   const register = useHostedRegister();
@@ -55,22 +57,20 @@ export function HostedAuthPage() {
       inviteCode: ""
     }
   });
-  const isLogin = mode === "login";
+  const isLogin = view === "login";
   const activeError = isLogin ? login.error : register.error;
   const registerDescription = registerMode === "invite"
     ? t("hosted.auth.inviteRegisterDescription")
     : t("hosted.auth.registerDescription");
 
   React.useEffect(() => {
-    const inviteCode = new URLSearchParams(window.location.search).get("invite");
     if (!inviteCode) {
       return;
     }
 
-    setMode("register");
     setRegisterMode("invite");
     registerForm.setValue("inviteCode", inviteCode);
-  }, [registerForm]);
+  }, [inviteCode, registerForm]);
 
   return (
     <main className="min-h-screen bg-muted/25 text-foreground">
@@ -94,7 +94,7 @@ export function HostedAuthPage() {
             <div className="inline-flex rounded-md border border-border bg-background p-1 shadow-sm">
               <button
                 type="button"
-                onClick={() => setMode("login")}
+                onClick={() => setView("login")}
                 className={cn(
                   "inline-flex h-8 items-center gap-2 rounded px-3 text-sm font-medium transition-colors",
                   isLogin ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
@@ -105,7 +105,7 @@ export function HostedAuthPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setMode("register")}
+                onClick={() => setView("register")}
                 className={cn(
                   "inline-flex h-8 items-center gap-2 rounded px-3 text-sm font-medium transition-colors",
                   !isLogin ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"

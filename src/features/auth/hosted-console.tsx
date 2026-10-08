@@ -39,8 +39,9 @@ export function HostedConsole() {
     }
   }, [serversQuery.data?.servers, syncHostedServers]);
 
+  // 只要会话确定就归位到 /admin，这样登录后地址栏不会继续停在 /?login。
   const { section, onSectionChange } = useConsoleSection(
-    Boolean(session) && !serversQuery.isLoading && servers.length > 0
+    Boolean(session) && !serversQuery.isLoading
   );
 
   if (sessionQuery.isLoading) {

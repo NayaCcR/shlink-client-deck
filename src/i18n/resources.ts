@@ -545,7 +545,7 @@ export const resources = {
           securityTitle: "凭证由服务端加密保存",
           securityDescription: "Hosted Mode 使用 HttpOnly 会话 Cookie。Shlink API Key 不会写入浏览器本地配置，也不会返回给前端。",
           proxyTitle: "请求通过后端代理",
-          proxyDescription: "浏览器请求本部署的 /api/hosted/shlink/*，后端解密凭证后再调用用户配置的 Shlink 实例。",
+          proxyDescription: "浏览器请求本部署的 /api/*，后端解密凭证后再调用用户配置的 Shlink 实例。",
           openSourceTitle: "为未来团队功能预留",
           openSourceDescription: "当前版本提供注册、登录、工作区、加密保存凭证和代理请求；数据层先使用文件存储，后续可替换为 PostgreSQL、Prisma、Auth.js 和 Redis。"
         }
@@ -1098,7 +1098,7 @@ export const resources = {
           securityTitle: "Credentials are encrypted on the server",
           securityDescription: "Hosted Mode uses an HttpOnly session cookie. Shlink API keys are not written to browser storage and are never returned to the frontend.",
           proxyTitle: "Requests go through the backend proxy",
-          proxyDescription: "The browser calls /api/hosted/shlink/*. The backend decrypts credentials and then calls the user-configured Shlink instance.",
+          proxyDescription: "The browser calls /api/*. The backend decrypts credentials and then calls the user-configured Shlink instance.",
           openSourceTitle: "Ready for future team features",
           openSourceDescription: "This version includes registration, login, workspaces, encrypted credentials, and proxying. The data layer starts with file storage and can later be replaced by PostgreSQL, Prisma, Auth.js, and Redis."
         }

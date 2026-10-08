@@ -126,9 +126,7 @@ export class ShlinkClient {
     }
 
     const url = isHosted
-      ? `/api/hosted/shlink/${encodeURIComponent(this.serverId!)}${path}${buildQueryString(
-          options.query
-        )}`
+      ? `/api/${encodeURIComponent(this.serverId!)}${path}${buildQueryString(options.query)}`
       : `${this.baseUrl}/rest/v3${path}${buildQueryString(options.query)}`;
 
     try {

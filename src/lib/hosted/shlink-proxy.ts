@@ -701,10 +701,10 @@ async function handleHostedTags(
 }
 
 /**
- * Shlink 代理主入口。serverId 可以是真实 id，也可以是 "default" / "auto" 别名
- * （解析为该用户可访问的第一个后端），由 store.resolveServerForUser 处理。
+ * Shlink 代理主入口。serverId 为 null 时使用该用户可访问的第一个后端
+ * （优先 token 绑定的那个），解析逻辑见 store.resolveServerForUser。
  */
-export async function proxyShlinkPath(request: Request, serverId: string, path: string[]) {
+export async function proxyShlinkPath(request: Request, serverId: string | null, path: string[]) {
   const method = request.method.toUpperCase();
   if (!SUPPORTED_METHODS.includes(method as (typeof SUPPORTED_METHODS)[number])) {
     return apiError("BAD_REQUEST", "Unsupported Shlink proxy method.", 405);

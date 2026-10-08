@@ -77,7 +77,7 @@ Hosted Mode 适合需要账号登录、集中保存凭证、记录短链归属�
 - 多服务器配置。
 - 服务端 AES-256-GCM 加密保存 Shlink API Key。
 - API Key 只在添加或更新服务器时提交给后端，不会返回给浏览器。
-- 后端代理 `/api/hosted/shlink/:serverId/*`，由服务端解密凭证并请求 Shlink。
+- 后端代理 `/api/*`，后端由 Token 绑定决定，服务端解密凭证并请求 Shlink。
 - Hosted 权限感知代理：`owner` / `admin` 可以查看工作区全局短链和总览，普通成员只看到由 Link Console 记录为自己拥有或工作区可见的短链、标签和访问统计。
 - 受保护短链：创建时可设置访问密码，访问者会先进入 Link Console 解锁页，验证成功后再跳转到真实目标。
 - 可配置 Hosted 数据层：默认 SQLite，同时预留 PostgreSQL、MySQL 和 Redis 后端；旧版 `.link-console/hosted-store.json` 可自动导入。
@@ -376,7 +376,7 @@ server {
 - `src/lib/shlink/types.ts`
 - `src/lib/shlink/errors.ts`
 
-组件中不要直接写 Shlink `fetch`。Static Mode 下 client 使用用户配置的 `server.baseUrl` 和 `server.apiKey`。Hosted Mode 下 client 请求本部署的 `/api/hosted/shlink/:serverId/*`，由后端代理到对应 Shlink 实例。
+组件中不要直接写 Shlink `fetch`。Static Mode 下 client 使用用户配置的 `server.baseUrl` 和 `server.apiKey`。Hosted Mode 下 client 请求本部署的 `/api/srv_xxx/*`，由后端代理到对应 Shlink 实例。
 
 当前默认使用 Shlink REST API `/rest/v3`。对于 Shlink 版本差异或不确定字段，类型中保留 TODO，不把未知字段写死成业务假设。
 

@@ -36,13 +36,11 @@ Hosted API 默认基址为当前 Link Console 域名。除登录、注册、会�
 
 ## Shlink 代理
 
-`/api/<path...>` 是推荐的调用入口，支持 `GET`、`POST`、`PATCH`、`DELETE`，将请求转发到 `/rest/v3/<path>`，并由服务端注入 `X-Api-Key`。**地址里不需要写 serverId** —— 后端由 Token 的绑定决定，取该 Token 绑定的第一个可访问后端；未绑定时取账号下第一个可访问的后端。
+`/api/<path...>` 是调用入口，支持 `GET`、`POST`、`PATCH`、`DELETE`，将请求转发到 `/rest/v3/<path>`，并由服务端注入 `X-Api-Key`。**地址里不需要写 serverId** —— 后端由 Token 的绑定决定，取该 Token 绑定的第一个可访问后端；未绑定时取账号下第一个可访问的后端。
 
 ```
-/api/short-urls                          使用 Token 绑定的后端
-/api/srv_xxx/short-urls                  显式指定某个后端
-/api/default/short-urls                  同上（default / auto 别名，兼容保留）
-/api/hosted/shlink/<serverId>/<path...>  等价别名
+/api/short-urls              使用 Token 绑定的后端
+/api/srv_xxx/short-urls      显式指定某个后端
 ```
 
 `/api` 是根级捕获路由，但 Next.js 的静态路由优先级更高，`/api/hosted/**` 仍由各自的处理器处理，不经过 Shlink 代理。

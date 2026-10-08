@@ -91,29 +91,6 @@ export function getCredentialSecret() {
   );
 }
 
-/**
- * 密钥轮换后仍可解密历史数据的旧密钥列表（由配置加载器在自动生成密钥时登记）。
- */
-export function getLegacyCredentialSecrets(): string[] {
-  const raw = process.env.LINK_CONSOLE_LEGACY_CREDENTIAL_KEYS;
-  if (!raw) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.filter(
-      (item): item is string => typeof item === "string" && item.trim().length > 0
-    );
-  } catch {
-    return [];
-  }
-}
-
 export function getMailConfig() {
   return {
     enabled: readBoolean(process.env.LINK_CONSOLE_MAIL_ENABLED),

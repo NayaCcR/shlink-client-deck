@@ -7,11 +7,7 @@ import {
   timingSafeEqual
 } from "crypto";
 
-import {
-  getCredentialSecret,
-  getLegacyCredentialSecrets,
-  getSessionSecret
-} from "@/lib/hosted/env";
+import { getCredentialSecret, getSessionSecret } from "@/lib/hosted/env";
 import { maskSecret } from "@/lib/utils";
 
 const PASSWORD_ITERATIONS = 210_000;
@@ -115,19 +111,7 @@ export function decryptSecret(value: string) {
     throw new Error("Invalid encrypted credential payload.");
   }
 
-  // 主密钥解不开时，依次尝试密钥轮换时登记的历史密钥，避免旧数据直接失效。
-  let lastError: unknown = null;
-  for (const secret of [getCredentialSecret(), ...getLegacyCredentialSecrets()]) {
-    try {
-      return decipherWith(secret, saltValue, ivValue, tagValue, encryptedValue);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Could not decrypt credential payload.");
+  return decipherWith(getCredentialSecret(), saltValue, ivValue, tagValue, encryptedValue);
 }
 
 export function previewSecret(value: string) {

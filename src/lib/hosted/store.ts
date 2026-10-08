@@ -660,20 +660,20 @@ export const hostedStore = {
   },
 
   /**
-   * 解析后端标识。"default" / "auto" 表示该用户可访问的第一个后端，
-   * 其余按真实 serverId 处理。用于 /api/default/... 这类不带 serverId 的调用。
+   * 解析后端：给了 serverId 就按真实 id 取；没给则用 token 绑定的第一个
+   * 可访问后端，再退到该用户工作区里最早创建的后端。
    */
   async resolveServerForUser(
     userId: string,
-    serverIdOrAlias: string,
+    serverId: string | null,
     preferredServerIds?: string[]
   ) {
-    const alias = (serverIdOrAlias || "").trim().toLowerCase();
-    if (alias !== "default" && alias !== "auto") {
-      return this.getServerForUser(userId, serverIdOrAlias);
+    const explicitId = (serverId || "").trim();
+    if (explicitId) {
+      return this.getServerForUser(userId, explicitId);
     }
 
-    // 别名场景下，优先使用 token 绑定的后端（多选时取第一个可访问的）。
+    // 未指定后端时，优先使用 token 绑定的后端（多选时取第一个可访问的）。
     for (const preferredId of preferredServerIds ?? []) {
       const preferred = await this.getServerForUser(userId, preferredId);
       if (preferred) {

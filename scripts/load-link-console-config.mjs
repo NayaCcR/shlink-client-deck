@@ -7,12 +7,10 @@ const DEFAULT_CONFIG_PATH = "link-console.config.json";
 const GENERATED_SECRETS_PATH = ".link-console/generated-secrets.json";
 const SECRET_MIN_LENGTH = 32;
 const SESSION_SECRET_FALLBACK = "link-console-development-session-secret-change-me";
-const CREDENTIAL_SECRET_FALLBACK = "link-console-development-credential-secret-change-me";
 const PLACEHOLDER_SECRETS = new Set([
   "replace-with-a-long-random-value",
   "replace-with-another-long-random-value",
-  SESSION_SECRET_FALLBACK,
-  CREDENTIAL_SECRET_FALLBACK
+  SESSION_SECRET_FALLBACK
 ]);
 
 function normalizeConfigPath(value) {
@@ -179,15 +177,6 @@ function writeGeneratedSecrets(secrets) {
   return secretsPath;
 }
 
-function readConfiguredSecret(configValue, envName, fallback) {
-  const configured = typeof configValue === "string" ? configValue.trim() : "";
-  if (configured) {
-    return configured;
-  }
-
-  return process.env[envName]?.trim() || fallback;
-}
-
 /**
  * 当配置文件里仍是示例占位符（或为空）时，生成一次随机密钥并落盘复用。
  * 密钥写入 .link-console/generated-secrets.json（0600，已被 .gitignore 覆盖），
@@ -197,46 +186,30 @@ export function ensureSecuritySecrets(config) {
   const security = config.security || {};
 
   if (process.env.LINK_CONSOLE_DISABLE_AUTO_SECRETS === "1") {
-    return { enabled: false, generated: false, secretsPath: null, legacyCredentialKeys: [] };
+    return { enabled: false, generated: false, secretsPath: null };
   }
 
   const needsSession = !isUsableSecret(security.authSecret);
   const needsCredential = !isUsableSecret(security.credentialEncryptionKey);
   if (!needsSession && !needsCredential) {
-    return { enabled: true, generated: false, secretsPath: null, legacyCredentialKeys: [] };
+    return { enabled: true, generated: false, secretsPath: null };
   }
 
+  // 已经落盘过就沿用，绝不重新生成 —— 换密钥会让会话失效、已加密的 API Key 解不开。
   const stored = readGeneratedSecrets();
-  const legacyCredentialKeys = new Set(
-    Array.isArray(stored.legacyCredentialKeys)
-      ? stored.legacyCredentialKeys.filter((item) => typeof item === "string" && item)
-      : []
-  );
-  const rotated = [];
+  let generatedSession = false;
+  let generatedCredential = false;
 
-  if (needsCredential) {
-    // 记录当前实际生效的旧密钥，让库里已加密的 Shlink API Key 仍可解密。
-    const previous = readConfiguredSecret(
-      security.credentialEncryptionKey,
-      "SHLINK_CREDENTIAL_ENCRYPTION_KEY",
-      readConfiguredSecret(security.authSecret, "AUTH_SECRET", CREDENTIAL_SECRET_FALLBACK)
-    );
-    if (previous && !legacyCredentialKeys.has(previous)) {
-      legacyCredentialKeys.add(previous);
-      rotated.push(previous);
-    }
-  }
-
-  let changed = rotated.length > 0;
-  if (needsSession && !isUsableSecret(stored.authSecret)) {
+  if (!isUsableSecret(stored.authSecret)) {
     stored.authSecret = randomSecret();
-    changed = true;
+    generatedSession = true;
   }
-  if (needsCredential && !isUsableSecret(stored.credentialEncryptionKey)) {
+  if (!isUsableSecret(stored.credentialEncryptionKey)) {
     stored.credentialEncryptionKey = randomSecret();
-    changed = true;
+    generatedCredential = true;
   }
-  stored.legacyCredentialKeys = [...legacyCredentialKeys];
+
+  const changed = generatedSession || generatedCredential;
   stored.updatedAt = new Date().toISOString();
 
   const secretsPath =
@@ -244,33 +217,26 @@ export function ensureSecuritySecrets(config) {
       ? writeGeneratedSecrets(stored)
       : resolveGeneratedSecretsPath();
 
+  // 配置文件里的占位符永远不生效，两种情况都用落盘密钥覆盖。
   if (needsSession) {
     applyEnvValue("AUTH_SECRET", stored.authSecret);
   }
   if (needsCredential) {
     applyEnvValue("SHLINK_CREDENTIAL_ENCRYPTION_KEY", stored.credentialEncryptionKey);
   }
-  if (legacyCredentialKeys.size > 0) {
-    applyEnvValue("LINK_CONSOLE_LEGACY_CREDENTIAL_KEYS", JSON.stringify([...legacyCredentialKeys]));
-  }
 
-  console.log("[link-console] 检测到示例占位符密钥，已启用自动生成。");
-  console.log(`  AUTH_SECRET                      => ${needsSession ? "已生成" : "沿用配置文件"}`);
-  console.log(`  SHLINK_CREDENTIAL_ENCRYPTION_KEY => ${needsCredential ? "已生成" : "沿用配置文件"}`);
+  console.log("[link-console] 配置文件里是示例占位符密钥，改用自动生成并落盘的密钥。");
+  console.log(`  AUTH_SECRET                      => ${generatedSession ? "本次生成" : "沿用已落盘密钥"}`);
+  console.log(`  SHLINK_CREDENTIAL_ENCRYPTION_KEY => ${generatedCredential ? "本次生成" : "沿用已落盘密钥"}`);
   console.log(`  密钥文件                          => ${secretsPath}`);
-  if (needsSession) {
+  if (generatedSession) {
     console.log("  提示：会话密钥变更后，现有登录会话与已创建的 API Token 全部失效，需要重新创建。");
   }
-  if (rotated.length > 0) {
-    console.log("  提示：旧加密密钥已登记为兼容密钥，已保存的 Shlink API Key 仍可正常解密。");
+  if (generatedCredential) {
+    console.log("  提示：加密密钥变更后，已保存的 Shlink API Key 无法再解密，需要重新填写。");
   }
 
-  return {
-    enabled: true,
-    generated: true,
-    secretsPath,
-    legacyCredentialKeys: [...legacyCredentialKeys]
-  };
+  return { enabled: true, generated: changed, secretsPath };
 }
 
 export async function loadLinkConsoleConfig(argv = process.argv.slice(2), options = {}) {
